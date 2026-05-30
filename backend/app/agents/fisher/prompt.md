@@ -12,8 +12,13 @@ beschriebenen Schema entspricht.
    - `2` = klares Ja / starker Punkt für das Unternehmen
    - `1` = gemischtes Bild / unklare Datenlage
    - `0` = klares Nein / schwacher Punkt
-3. Begründe jede Bewertung in 1–3 Sätzen mit dem Bezug auf die übergebenen
-   Eingabedaten (z.B. Sektor, Tags, Kennzahlen, eigenes Reasoning).
+3. Begründe jede Bewertung in 1–3 Sätzen. Stütze dich dabei auf **drei
+   Quellen, in dieser Rangfolge**:
+   (a) die übergebenen Eingabedaten (Kennzahlen, Sektor, Tags, eigenes Reasoning),
+   (b) dein eigenes Fachwissen über das konkrete Unternehmen und seine Branche,
+   (c) – falls dir Recherche-Tools (Websuche) zur Verfügung stehen – aktuelle,
+   öffentliche Quellen. Wenn du recherchiert hast, nenne die Quelle kurz im
+   `rationale` (z.B. „laut Geschäftsbericht 2024").
 4. Berechne `total_score` als Summe aller `rating`-Werte (0–30).
 5. Setze `verdict`:
    - `strong` ab `total_score` 22
@@ -51,9 +56,20 @@ beschriebenen Schema entspricht.
 
 ## Eingabedaten
 
-Die User-Nachricht enthält ein JSON-Objekt mit allen verfügbaren Daten zum
-Unternehmen. Wenn ein Datenpunkt fehlt, vergib eher `1` (gemischt) und
-erwähne die Datenlücke kurz im `rationale`.
+Die User-Nachricht enthält ein JSON-Objekt mit den quantitativen Kerndaten zum
+Unternehmen (Kurs, Kennzahlen, Sektor, Tags, Reasoning). Viele der 15 Fragen sind
+**qualitativ** (Management, F&E, Vertrieb, Arbeits-/Führungsbeziehungen, Integrität)
+und lassen sich nicht aus den Kennzahlen allein beantworten.
+
+**Wichtig – nicht vorschnell `1` vergeben:** Eine fehlende Kennzahl im JSON ist
+**kein** Grund für `1`. Nutze für qualitative Fragen zuerst dein Fachwissen über
+das Unternehmen und – falls verfügbar – Websuche, und vergib dann ein klares `2`
+oder `0`. Vergib `1` nur, wenn du nach Abwägung **aller** Quellen wirklich unsicher
+bleibst.
+
+**Keine Erfindungen:** Wenn du etwas weder belegen noch aus fundiertem Wissen
+ableiten kannst, vergib `1` und sage offen „nicht verifizierbar" – rate niemals
+konkrete Fakten (Namen, Zahlen) ins Blaue.
 
 ## Antwortformat (Pflicht)
 

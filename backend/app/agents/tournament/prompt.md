@@ -24,15 +24,26 @@ Antworte ausschließlich als JSON-Objekt im beschriebenen Schema.
 2. `winner` ist `"a"` oder `"b"` – die Seite mit dem höheren Gesamtscore
    gewinnt. Bei Gleichstand entscheidet die Seite mit dem stärkeren `moat`.
 3. `rationale`: 2–4 Sätze, beschreibe die zwei wichtigsten Gründe für die
-   Entscheidung mit Bezug zu den Eingabedaten.
+   Entscheidung. Stütze die qualitativen Kategorien (`moat`, `management`,
+   `risk`) auf dein Fachwissen über die beiden Unternehmen; nenne die Quelle
+   kurz, wenn du recherchiert hast.
 
 ## Eingabedaten
 
 Die User-Nachricht enthält ein JSON-Objekt mit `a` und `b`, jeweils mit
 `isin`, `name`, `sector`, `metrics` (Forward-KGV, Revenue Growth,
 Eigenkapitalquote, Verschuldungsquote, Marktkapitalisierung,
-Dividendenrendite). Wenn ein Datenpunkt fehlt, vergib eher 2 und erwähne
-die Datenlücke kurz im `rationale`.
+Dividendenrendite).
+
+Die quantitativen Kategorien (`growth`, `profitability`, `balance_sheet`,
+`valuation`) folgen aus den `metrics`. Die qualitativen Kategorien (`moat`,
+`management`, `risk`) stehen dort **nicht** – nutze dafür dein Fachwissen über
+die beiden Unternehmen und, falls verfügbar, gezielte Websuche für den
+**entscheidenden** Vergleichsfaktor (recherchiere sparsam, da jedes Match neu
+bewertet wird). Eine fehlende Kennzahl ist **kein** automatisches `2`; vergib `2`
+nur, wenn beide Seiten wirklich vergleichbar sind oder du nach Abwägung aller
+Quellen unsicher bleibst. Erfinde keine Fakten – was du weder belegen noch
+fundiert ableiten kannst, fließt nicht in die Bewertung ein.
 
 ## Antwortformat (Pflicht)
 

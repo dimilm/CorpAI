@@ -96,6 +96,25 @@ describe("AiProviderCard", () => {
     );
   });
 
+  it("offers Claude Code as a keyless provider option", () => {
+    render(<AiProviderCard {...makeProps()} />);
+    const select = screen.getByLabelText(/ki-anbieter/i) as HTMLSelectElement;
+    const values = Array.from(select.options).map((o) => o.value);
+    expect(values).toContain("claudecode");
+  });
+
+  it("shows the subscription hint and no key field for claudecode", () => {
+    render(
+      <AiProviderCard
+        {...makeProps({
+          settings: { ...baseSettings, ai_provider: "claudecode", ai_api_key_set: false },
+        })}
+      />
+    );
+    expect(screen.getByText(/claude-code-abo/i)).toBeInTheDocument();
+    expect(screen.queryByText("Schlüssel hinterlegt")).not.toBeInTheDocument();
+  });
+
   it("calls onTestConnection when test button is clicked", () => {
     const onTestConnection = vi.fn();
     render(<AiProviderCard {...makeProps({ onTestConnection })} />);

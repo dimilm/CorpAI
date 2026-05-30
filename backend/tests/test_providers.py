@@ -13,6 +13,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from app.providers.ai.anthropic_provider import AnthropicProvider
+from app.providers.ai.claudecode_provider import ClaudeCodeProvider
 from app.providers.ai.gemini_provider import GeminiProvider
 from app.providers.ai.ollama_provider import OllamaProvider
 from app.providers.ai.openai_provider import OpenAIProvider
@@ -240,3 +241,128 @@ def test_ollama_ping_unreachable_endpoint_raises() -> None:
     provider = OllamaProvider(endpoint="http://127.0.0.1:1/api/generate", model="llama3")
     with pytest.raises(Exception):
         asyncio.run(provider.ping())
+
+
+# ---------------------------------------------------------------------------
+# Claude Code (CLI subprocess, subscription auth — no API key)
+# ---------------------------------------------------------------------------
+
+
+def _mock_claude_proc(
+    envelope: dict[str, Any] | str, returncode: int = 0, stderr: str = ""
+) -> Any:
+    stdout = (envelope if isinstance(envelope, str) else json.dumps(envelope)).encode("utf-8")
+    proc = MagicMock()
+    proc.communicate = AsyncMock(return_value=(stdout, stderr.encode("utf-8")))
+    proc.returncode = returncode
+    proc.kill = MagicMock()
+    proc.wait = AsyncMock(return_value=None)
+    return proc
+
+
+def test_claudecode_complete_reads_structured_output() -> None:
+    # In schema mode the parsed object lives in `structured_output`; `result` is noise.
+    envelope = {
+        "is_error": False,
+        "result": "free-text noise that must be ignored",
+        "structured_output": {"score": 9},
+        "usage": {"input_tokens": 42, "output_tokens": 7},
+    }
+    proc = _mock_claude_proc(envelope)
+    provider = ClaudeCodeProvider(model="sonnet")
+
+    with patch(
+        "app.providers.ai.claudecode_provider.shutil.which", return_value="/usr/bin/claude"
+    ), patch(
+        "app.providers.ai.claudecode_provider.asyncio.create_subprocess_exec",
+        AsyncMock(return_value=proc),
+    ) as spawn:
+        result = asyncio.run(
+            provider.complete("system", "user", json_schema={"type": "object"})
+        )
+
+    assert result.parsed == {"score": 9}
+    assert result.input_tokens == 42
+    assert result.output_tokens == 7
+    assert result.estimated_cost == 0.0
+    # Schema mode passes --json-schema; the user prompt is fed via stdin.
+    assert "--json-schema" in spawn.call_args.args
+    assert proc.communicate.call_args.args[0] == b"user"
+
+
+def test_claudecode_complete_without_schema_wraps_result_text() -> None:
+    envelope = {"is_error": False, "result": "plain answer", "usage": {}}
+    proc = _mock_claude_proc(envelope)
+    provider = ClaudeCodeProvider(model="sonnet")
+
+    with patch(
+        "app.providers.ai.claudecode_provider.shutil.which", return_value="/usr/bin/claude"
+    ), patch(
+        "app.providers.ai.claudecode_provider.asyncio.create_subprocess_exec",
+        AsyncMock(return_value=proc),
+    ):
+        result = asyncio.run(provider.complete("system", "user"))
+
+    assert result.parsed == {"text": "plain answer"}
+    assert result.raw_text == "plain answer"
+
+
+def test_claudecode_complete_nonzero_exit_raises() -> None:
+    proc = _mock_claude_proc("", returncode=1, stderr="not logged in")
+    provider = ClaudeCodeProvider(model="sonnet")
+
+    with patch(
+        "app.providers.ai.claudecode_provider.shutil.which", return_value="/usr/bin/claude"
+    ), patch(
+        "app.providers.ai.claudecode_provider.asyncio.create_subprocess_exec",
+        AsyncMock(return_value=proc),
+    ):
+        with pytest.raises(ValueError, match="not logged in"):
+            asyncio.run(
+                provider.complete("system", "user", json_schema={"type": "object"})
+            )
+
+
+def test_claudecode_missing_cli_raises() -> None:
+    provider = ClaudeCodeProvider(model="sonnet")
+    with patch("app.providers.ai.claudecode_provider.shutil.which", return_value=None):
+        with pytest.raises(ValueError, match="nicht gefunden"):
+            asyncio.run(provider.ping())
+
+
+def test_claudecode_complete_enables_web_tools_by_default() -> None:
+    proc = _mock_claude_proc(
+        {"is_error": False, "structured_output": {"score": 1}, "usage": {}}
+    )
+    provider = ClaudeCodeProvider(model="sonnet")  # enable_web defaults to True
+
+    with patch(
+        "app.providers.ai.claudecode_provider.shutil.which", return_value="/usr/bin/claude"
+    ), patch(
+        "app.providers.ai.claudecode_provider.asyncio.create_subprocess_exec",
+        AsyncMock(return_value=proc),
+    ) as spawn:
+        asyncio.run(provider.complete("system", "user", json_schema={"type": "object"}))
+
+    args = spawn.call_args.args
+    assert "--tools" in args and "--allowed-tools" in args
+    assert "WebSearch" in args and "WebFetch" in args
+    # Read-only research only — never file/Bash tools.
+    assert "Bash" not in args and "Edit" not in args
+
+
+def test_claudecode_complete_web_tools_can_be_disabled() -> None:
+    proc = _mock_claude_proc(
+        {"is_error": False, "structured_output": {"score": 1}, "usage": {}}
+    )
+    provider = ClaudeCodeProvider(model="sonnet", enable_web=False)
+
+    with patch(
+        "app.providers.ai.claudecode_provider.shutil.which", return_value="/usr/bin/claude"
+    ), patch(
+        "app.providers.ai.claudecode_provider.asyncio.create_subprocess_exec",
+        AsyncMock(return_value=proc),
+    ) as spawn:
+        asyncio.run(provider.complete("system", "user", json_schema={"type": "object"}))
+
+    assert "--tools" not in spawn.call_args.args

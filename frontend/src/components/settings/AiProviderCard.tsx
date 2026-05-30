@@ -4,6 +4,7 @@ const AI_PROVIDERS = [
   { value: "openai", label: "OpenAI" },
   { value: "gemini", label: "Google Gemini" },
   { value: "anthropic", label: "Anthropic Claude" },
+  { value: "claudecode", label: "Claude Code (Abo, lokal)" },
   { value: "ollama", label: "Ollama (lokal)" },
 ] as const;
 
@@ -11,6 +12,7 @@ const MODEL_PRESETS: Record<string, string[]> = {
   openai: ["gpt-4o-mini", "gpt-4o"],
   gemini: ["gemini-3-flash-preview", "gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.0-flash"],
   anthropic: ["claude-sonnet-4-6", "claude-opus-4-8", "claude-haiku-4-5"],
+  claudecode: ["sonnet", "opus", "haiku"],
   ollama: [],
 };
 
@@ -18,8 +20,11 @@ const DEFAULT_MODEL: Record<string, string> = {
   openai: "gpt-4o-mini",
   gemini: "gemini-3-flash-preview",
   anthropic: "claude-sonnet-4-6",
+  claudecode: "sonnet",
   ollama: "llama3",
 };
+
+const KEYLESS_PROVIDERS = new Set(["ollama", "claudecode"]);
 
 const REFRESH_INTERVAL_OPTIONS = [
   { value: "daily", label: "Täglich (höhere KI-Kosten)" },
@@ -56,7 +61,7 @@ export function AiProviderCard({
   onTestConnection,
 }: Props) {
   const providerPresets = MODEL_PRESETS[settings.ai_provider] ?? [];
-  const isOllama = settings.ai_provider === "ollama";
+  const noKeyNeeded = KEYLESS_PROVIDERS.has(settings.ai_provider);
 
   function handleProviderChange(nextProvider: string) {
     const presets = MODEL_PRESETS[nextProvider] ?? [];
@@ -117,9 +122,11 @@ export function AiProviderCard({
 
       <div className="field">
         <label htmlFor="setting-api-key">API-Schlüssel</label>
-        {isOllama ? (
+        {noKeyNeeded ? (
           <div className="settings-key-disabled">
-            Lokales Modell — kein API-Schlüssel nötig.
+            {settings.ai_provider === "claudecode"
+              ? "Nutzt das lokale Claude-Code-Abo — kein API-Schlüssel nötig."
+              : "Lokales Modell — kein API-Schlüssel nötig."}
           </div>
         ) : settings.ai_api_key_set && !editKey ? (
           <div className="settings-key-row">
@@ -181,7 +188,7 @@ export function AiProviderCard({
           type="button"
           className="btn-secondary"
           onClick={onTestConnection}
-          disabled={testing || (isDirty && !settings.ai_api_key_set && !apiKey)}
+          disabled={testing || (isDirty && !noKeyNeeded && !settings.ai_api_key_set && !apiKey)}
           title={
             isDirty
               ? "Erst speichern, dann testet der Button die hinterlegte Konfiguration."

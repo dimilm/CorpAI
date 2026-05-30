@@ -5,7 +5,23 @@
       "PowerShell(conda run -n companytracker python -m pytest tests/test_providers.py -q 2>&1)",
       "Bash(git check-ignore *)",
       "Bash(git add *)",
-      "Bash(git commit -m ' *)"
+      "Bash(git commit -m ' *)",
+      "Bash(where claude *)",
+      "Bash(claude -p --output-format json --model sonnet --json-schema '{\"type\":\"object\",\"properties\":{\"greeting\":{\"type\":\"string\"}},\"required\":[\"greeting\"],\"additionalProperties\":false}')",
+      "Read(//c/Users/dimi_/.claude/**)",
+      "Bash(echo \"===EXIT $?===\")",
+      "Bash(env -u CLAUDECODE -u CLAUDE_CODE_ENTRYPOINT -u CLAUDE_CODE_SESSION_ID -u CLAUDE_CODE_TMPDIR -u CLAUDE_AGENT_SDK_VERSION -u CLAUDE_CODE_ENABLE_TASKS -u CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING claude -p --output-format json --model sonnet --no-session-persistence --json-schema '{\"type\":\"object\",\"properties\":{\"greeting\":{\"type\":\"string\"}},\"required\":[\"greeting\"],\"additionalProperties\":false}')",
+      "PowerShell(conda run -n companytracker python -m pytest backend/tests/test_providers.py -q 2>&1)",
+      "PowerShell(npx vitest run src/components/settings/AiProviderCard.test.tsx 2>&1)",
+      "PowerShell(npm test 2>&1)",
+      "PowerShell(conda run --no-capture-output -n companytracker python _verify_claudecode.py 2>&1)",
+      "Read(//c/Users/dimi_/Documents/32_PulsoCorp/PulsoCorp/backend/app/services/**)",
+      "PowerShell(conda run --no-capture-output -n companytracker python -c \"import psutil; p=psutil.Process\\(4592\\); print\\('CWD:', p.cwd\\(\\)\\)\" 2>&1)",
+      "Read(//c/Users/dimi_/Documents/32_PulsoCorp/PulsoCorp/backend/app/providers/ai/**)",
+      "Read(//c/Users/dimi_/anaconda3/envs/companytracker/Lib/site-packages/**)",
+      "Bash([ -f \"$d/__init__.py\" ])",
+      "Bash(echo \"=== CorpAI pyproject name ===\"; grep -niE \"^name|^\\\\[project\\\\]|packages|where|include\" \"C:/20_Dima/10_Workspace/Source/CorpAI/backend/pyproject.toml\" | head; echo; echo \"=== PulsoCorp pyproject name ===\"; grep -niE \"^name\" \"C:/Users/dimi_/Documents/32_PulsoCorp/PulsoCorp/backend/pyproject.toml\" 2>/dev/null | head)",
+      "Read(//c/Users/dimi_/Documents/32_PulsoCorp/PulsoCorp/backend/**)"
     ]
   }
 }
