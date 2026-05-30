@@ -9,6 +9,7 @@ import { PlusIcon, SearchIcon } from "../components/icons";
 import { Spinner } from "../components/Spinner";
 import WatchlistTable from "../components/WatchlistTable";
 import { WatchlistMobileList } from "../components/watchlist/WatchlistMobileList";
+import { useStockPriceTrends } from "../hooks/useStockPriceTrends";
 import { ActiveFilterChips } from "../components/watchlist/ActiveFilterChips";
 import type { ActiveFilter } from "../components/watchlist/ActiveFilterChips";
 import { CreateStockModal } from "../components/watchlist/CreateStockModal";
@@ -75,6 +76,7 @@ export function WatchlistPage() {
 
   const thresholds = useColorThresholds();
   const { jobsByIsin, trendsByIsin } = useJobsAggregate();
+  const { data: pricesByIsin } = useStockPriceTrends();
   const presets = usePresets({
     filterValues: filters.values,
     onApply: filters.applyValues,
@@ -366,6 +368,7 @@ export function WatchlistPage() {
             refreshDisabled={isRunActive}
             jobsByIsin={jobsByIsin}
             trendsByIsin={trendsByIsin}
+            pricesByIsin={pricesByIsin}
           />
         </div>
       )}

@@ -8,8 +8,15 @@ from app.models.job_source import JobSource
 from app.models.stock import Stock
 from app.providers.market.base import MarketProvider
 from app.schemas.job_source import JobsAggregateTrendPoint, StockJobsOut, StockJobsTrendOut
-from app.schemas.stock import HistoryResponse, SectorSuggestion, StockCreate, StockOut, StockUpdate
-from app.services import jobs_trend_service
+from app.schemas.stock import (
+    HistoryResponse,
+    SectorSuggestion,
+    StockCreate,
+    StockOut,
+    StockPriceTrendsOut,
+    StockUpdate,
+)
+from app.services import jobs_trend_service, price_trend_service
 from app.services.history_service import HistoryService
 from app.services.scheduler_service import start_single_refresh_background
 from app.services.stock_service import (
@@ -61,6 +68,34 @@ def get_sectors(
         .all()
     )
     return [{"name": row.sector, "count": row.count} for row in rows]
+
+
+@router.get("/trends", response_model=StockPriceTrendsOut)
+def price_trends(
+    days: int = Query(default=365, ge=1, le=3650),
+    _: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> dict:
+    """Per-ISIN monthly close-price series over the last ``days``.
+
+    Powers the watchlist 12-month price-sparkline column from a single
+    aggregate query over cached `PriceHistory`. Reads only — the cache is
+    kept warm by the refresh pipeline. Mounted **before** `/{isin}` so
+    FastAPI does not parse the literal ``trends`` as an ISIN.
+    """
+    aggregated = price_trend_service.price_trends_by_isin(db, days=days)
+    items = [
+        {
+            "isin": isin,
+            "points": [{"date": d, "close": close} for d, close in points],
+        }
+        for isin, points in aggregated.items()
+    ]
+    return {
+        "days": days,
+        "interval": price_trend_service.SPARKLINE_INTERVAL,
+        "items": items,
+    }
 
 
 @router.get("/{isin}", response_model=StockOut)

@@ -14,7 +14,7 @@
  *   Property 7 — Tooltip title contains correct aggregate data
  */
 
-import { cleanup, render, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, vi } from "vitest";
 import * as fc from "fast-check";
@@ -327,16 +327,16 @@ describe("WatchlistTable property-based tests", () => {
   });
 
   /**
-   * Property 7 — Tooltip title contains correct aggregate data
+   * Property 7 — Hover tooltip contains correct aggregate data
    *
-   * For any stock with a non-null latest value, the jobs-sparkline-cell span's
-   * title attribute SHALL contain "Aktuell: {latest}". When delta_7d is non-null
-   * it SHALL also contain "Δ 7T: ". When ≥ 2 trend points are available it SHALL
-   * also contain "90T min/max: ".
+   * For any stock with a non-null latest value, hovering the Stellen cell
+   * SHALL reveal a tooltip containing "Aktuell: {latest}". When delta_7d is
+   * non-null it SHALL also contain "Δ 7T: ". When ≥ 2 trend points are
+   * available it SHALL also contain "min/max:".
    *
    * Validates: Requirements 3.7
    */
-  it("Property 7: tooltip title contains correct aggregate data", () => {
+  it("Property 7: hover tooltip contains correct aggregate data", () => {
     fc.assert(
       fc.property(
         fc.record({
@@ -351,25 +351,27 @@ describe("WatchlistTable property-based tests", () => {
           });
 
           const { stellenCell } = getTrendAndStellenCells(container);
-          const tooltipSpan = stellenCell.querySelector(
+          const wrapper = stellenCell.querySelector(
             ".jobs-sparkline-cell"
           ) as HTMLElement | null;
 
-          // The tooltip span must exist (latest is non-null)
-          if (tooltipSpan === null) {
+          // The hover target must exist (latest is non-null)
+          if (wrapper === null) {
             cleanup();
             return false;
           }
 
-          const title = tooltipSpan.getAttribute("title") ?? "";
+          fireEvent.mouseEnter(wrapper);
+          const tip = screen.queryByRole("tooltip");
+          const text = tip?.textContent ?? "";
 
-          const hasAktuell = title.includes(`Aktuell: ${latest}`);
-          const hasDelta = delta_7d == null ? true : title.includes("Δ 7T: ");
+          const hasAktuell = text.includes(`Aktuell: ${latest}`);
+          const hasDelta = delta_7d == null ? true : text.includes("Δ 7T: ");
           const hasMinMax =
-            trendPoints.length >= 2 ? title.includes("90T min/max: ") : true;
+            trendPoints.length >= 2 ? text.includes("min/max:") : true;
 
           cleanup();
-          return hasAktuell && hasDelta && hasMinMax;
+          return tip !== null && hasAktuell && hasDelta && hasMinMax;
         }
       )
     );

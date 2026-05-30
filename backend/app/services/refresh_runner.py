@@ -24,6 +24,7 @@ from app.models.run_log import RunLog, RunStockStatus
 from app.models.stock import MarketData, Stock
 from app.providers.market.yfinance_provider import YFinanceProvider
 from app.services import lock_manager, run_pipeline
+from app.services.history_service import HistoryService
 from app.services.market_service import MarketService
 from app.services.refresh_lock import (
     _LOCK_NAME,
@@ -439,6 +440,16 @@ async def _process_market_steps(
         _flag_market_error(db, stock.isin, exc)
         errors.append(f"{stock.isin}: metrics: {exc}")
         return row, False
+
+    # Step 4 (best-effort, untracked): warm the monthly price history so the
+    # watchlist 12-month price sparkline has data for every stock, not just
+    # ones whose detail page was opened. TTL-gated inside `warm`, so this is
+    # usually a no-op. Never fails the stock — the refresh already succeeded.
+    try:
+        await HistoryService(market.provider).warm(db, stock, interval="1mo")
+    except Exception as exc:  # noqa: BLE001 - best-effort cache warm
+        db.rollback()
+        logger.debug("Price-history warm failed for %s: %s", stock.isin, exc)
 
     return row, True
 

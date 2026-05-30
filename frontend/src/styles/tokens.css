@@ -107,6 +107,9 @@
   --chart-grid: var(--c-gray-200);
   --chart-tick: var(--c-gray-500);
   --chart-line: var(--c-blue-600);
+  /* Direction-aware sparkline strokes (watchlist Trend column). */
+  --chart-line-up: #16a34a;
+  --chart-line-down: var(--c-red-600);
   --chart-tooltip-bg: var(--c-white);
   --chart-tooltip-border: var(--c-gray-200);
   --chart-tooltip-text: var(--c-slate-900);
@@ -150,6 +153,8 @@
   --chart-grid: var(--c-border-dark);
   --chart-tick: var(--c-slate-400);
   --chart-line: #60a5fa;
+  --chart-line-up: #4ade80;
+  --chart-line-down: #f87171;
   --chart-tooltip-bg: var(--c-surface-2-dark);
   --chart-tooltip-border: var(--c-border-strong-dark);
   --chart-tooltip-text: var(--c-slate-100);
@@ -196,6 +201,8 @@
     --chart-grid: var(--c-border-dark);
     --chart-tick: var(--c-slate-400);
     --chart-line: #60a5fa;
+    --chart-line-up: #4ade80;
+    --chart-line-down: #f87171;
     --chart-tooltip-bg: var(--c-surface-2-dark);
     --chart-tooltip-border: var(--c-border-strong-dark);
     --chart-tooltip-text: var(--c-slate-100);

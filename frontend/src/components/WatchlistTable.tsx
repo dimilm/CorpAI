@@ -11,9 +11,12 @@ import {
 import { formatNumber, formatPercent } from "../lib/format";
 import { tagColorClass } from "../lib/tagColor";
 import { AIPillRow } from "./ai/AIPillRow";
+import { HoverTooltip } from "./HoverTooltip";
 import { JobsSparkline } from "./jobs/JobsSparkline";
+import { PriceSparkline } from "./PriceSparkline";
 import RowActionsMenu from "./RowActionsMenu";
 import type { JobsTrendPoint } from "../hooks/useJobsTrendsAggregate";
+import type { PriceTrendPoint } from "../hooks/useStockPriceTrends";
 
 const MAX_VISIBLE_TAGS = 3;
 
@@ -39,19 +42,26 @@ interface Props {
   // the same reason; cells render the count without a chart when fewer
   // than 2 points are available.
   trendsByIsin?: Record<string, JobsTrendPoint[]>;
+  // Per-ISIN 12-month monthly close-price series powering the Kurs 12M
+  // sparkline. Optional: cells fall back to a dash until loaded / when a
+  // stock has no cached price history yet.
+  pricesByIsin?: Record<string, PriceTrendPoint[]>;
 }
 
-function buildJobsCellTitle(
-  latest: number | null,
-  delta7d: number | null,
-  points: JobsTrendPoint[] | undefined
-): string {
-  const parts: string[] = [];
-  parts.push(`Aktuell: ${latest != null ? latest : "–"}`);
-  if (delta7d != null) {
-    const sign = delta7d > 0 ? `+${delta7d}` : `${delta7d}`;
-    parts.push(`Δ 7T: ${sign}`);
-  }
+/** Rich tooltip body for the Stellen cell: the latest count plus the
+ *  short-term Δ7T (colour-keyed) and the 90-day min/max band. Mirrors
+ *  {@link TrendTooltip}'s styling; together the two columns read as
+ *  "short-term move" (here) vs. "90-day trend" (Trend column). */
+function JobsTooltip({
+  latest,
+  delta7d,
+  points,
+}: {
+  latest: number;
+  delta7d: number | null;
+  points: JobsTrendPoint[] | undefined;
+}) {
+  let minMax: string | null = null;
   if (points && points.length >= 2) {
     let min = points[0].count;
     let max = points[0].count;
@@ -59,9 +69,107 @@ function buildJobsCellTitle(
       if (p.count < min) min = p.count;
       if (p.count > max) max = p.count;
     }
-    parts.push(`90T min/max: ${min}/${max}`);
+    minMax = `${min} / ${max}`;
   }
-  return parts.join(" · ");
+  const deltaClass =
+    delta7d == null || delta7d === 0
+      ? ""
+      : delta7d > 0
+        ? "delta-up"
+        : "delta-down";
+  const deltaStr =
+    delta7d == null ? null : delta7d > 0 ? `+${delta7d}` : `${delta7d}`;
+  return (
+    <span className="trend-tip">
+      <span className="trend-tip-head">Offene Stellen</span>
+      <span className="trend-tip-range">Aktuell: {latest}</span>
+      {deltaStr != null && (
+        <span className={`trend-tip-delta ${deltaClass}`.trim()}>
+          Δ 7T: {deltaStr}
+        </span>
+      )}
+      {minMax && <span className="trend-tip-sub">90 T min/max: {minMax}</span>}
+    </span>
+  );
+}
+
+/** Rich tooltip body for the Kurs 12M sparkline: start→end close prices and
+ *  the 12-month % change, colour-keyed to direction. Caller guarantees ≥2
+ *  points. */
+function PriceTooltip({
+  points,
+  currency,
+}: {
+  points: PriceTrendPoint[];
+  currency: string | null;
+}) {
+  const first = points[0].close;
+  const last = points[points.length - 1].close;
+  const delta = last - first;
+  const fmt = (v: number) =>
+    v.toLocaleString("de-DE", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  const unit = currency ? ` ${currency}` : "";
+  let pctStr: string;
+  if (first === 0) {
+    pctStr = "n. v.";
+  } else {
+    const pct = (delta / first) * 100;
+    const sign = pct > 0 ? "+" : pct < 0 ? "-" : "±";
+    pctStr = `${sign}${Math.abs(pct).toLocaleString("de-DE", {
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 1,
+    })} %`;
+  }
+  const deltaClass = delta > 0 ? "delta-up" : delta < 0 ? "delta-down" : "";
+  return (
+    <span className="trend-tip">
+      <span className="trend-tip-head">Kurs · 12 Monate</span>
+      <span className="trend-tip-range">
+        {fmt(first)} → {fmt(last)}
+        {unit}
+      </span>
+      <span className={`trend-tip-delta ${deltaClass}`.trim()}>{pctStr}</span>
+    </span>
+  );
+}
+
+/** Rich tooltip body for the (axis-less) Trend sparkline: the whole-period
+ *  swing the micro-chart's shape implies but can't quantify — start→end,
+ *  absolute Δ and % of the starting value, colour-keyed to direction.
+ *  Complements the Stellen cell's Δ7T (short-term). Caller guarantees ≥2
+ *  points. */
+function TrendTooltip({ points }: { points: JobsTrendPoint[] }) {
+  const first = points[0].count;
+  const last = points[points.length - 1].count;
+  const delta = last - first;
+  const deltaStr = delta > 0 ? `+${delta}` : `${delta}`;
+  let pctStr: string;
+  if (first === 0) {
+    pctStr = "n. v.";
+  } else {
+    const pct = (delta / first) * 100;
+    const formatted = Math.abs(pct).toLocaleString("de-DE", {
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 1,
+    });
+    const sign = pct > 0 ? "+" : pct < 0 ? "-" : "±";
+    pctStr = `${sign}${formatted} %`;
+  }
+  const deltaClass = delta > 0 ? "delta-up" : delta < 0 ? "delta-down" : "";
+  return (
+    <span className="trend-tip">
+      <span className="trend-tip-head">90 Tage</span>
+      <span className="trend-tip-range">
+        {first} → {last}
+      </span>
+      <span className={`trend-tip-delta ${deltaClass}`.trim()}>
+        {deltaStr} ({pctStr})
+      </span>
+    </span>
+  );
 }
 
 function SortHeader({
@@ -102,6 +210,7 @@ export default function WatchlistTable({
   refreshDisabled = false,
   jobsByIsin,
   trendsByIsin,
+  pricesByIsin,
 }: Props) {
   return (
     <div className="table-scroll">
@@ -114,6 +223,7 @@ export default function WatchlistTable({
           <th>Tags</th>
           <SortHeader label="Tranchen" keyName="tranches" sortBy={sortBy} sortDir={sortDir} onSort={onSort} className="num-cell" />
           <SortHeader label="Kurs" keyName="current_price" sortBy={sortBy} sortDir={sortDir} onSort={onSort} className="num-cell" />
+          <th className="num-cell">Kurs 12M</th>
           <SortHeader label="Tagesänd. (%)" keyName="day_change_pct" sortBy={sortBy} sortDir={sortDir} onSort={onSort} className="num-cell" />
           <SortHeader label="Kursziel (%)" keyName="analyst_target_distance_pct" sortBy={sortBy} sortDir={sortDir} onSort={onSort} className="num-cell" />
           <SortHeader label="Div. (%)" keyName="dividend_yield_current" sortBy={sortBy} sortDir={sortDir} onSort={onSort} className="num-cell" />
@@ -158,6 +268,22 @@ export default function WatchlistTable({
             <td className="num-cell">{s.tranches}</td>
             <td className="num-cell">{formatNumber(s.current_price)}</td>
             <td className="num-cell">
+              {(() => {
+                const pricePoints = pricesByIsin?.[s.isin];
+                if (!pricePoints || pricePoints.length < 2) return "–";
+                return (
+                  <HoverTooltip
+                    className="jobs-sparkline-cell"
+                    content={
+                      <PriceTooltip points={pricePoints} currency={s.currency} />
+                    }
+                  >
+                    <PriceSparkline points={pricePoints} />
+                  </HoverTooltip>
+                );
+              })()}
+            </td>
+            <td className="num-cell">
               <span className={changeClass(s.day_change_pct, thresholds)}>
                 {formatPercent(s.day_change_pct, 2, { withUnit: false })}
               </span>
@@ -177,9 +303,12 @@ export default function WatchlistTable({
                 const trendPoints = trendsByIsin?.[s.isin];
                 if (!trendPoints || trendPoints.length < 2) return "–";
                 return (
-                  <span className="jobs-sparkline-cell">
+                  <HoverTooltip
+                    className="jobs-sparkline-cell"
+                    content={<TrendTooltip points={trendPoints} />}
+                  >
                     <JobsSparkline points={trendPoints} />
-                  </span>
+                  </HoverTooltip>
                 );
               })()}
             </td>
@@ -188,13 +317,17 @@ export default function WatchlistTable({
                 const aggregate = jobsByIsin?.[s.isin];
                 if (!aggregate || aggregate.latest == null) return "–";
                 const trendPoints = trendsByIsin?.[s.isin];
-                const title = buildJobsCellTitle(
-                  aggregate.latest,
-                  aggregate.delta_7d,
-                  trendPoints
-                );
                 return (
-                  <span className="jobs-sparkline-cell" title={title}>
+                  <HoverTooltip
+                    className="jobs-sparkline-cell"
+                    content={
+                      <JobsTooltip
+                        latest={aggregate.latest}
+                        delta7d={aggregate.delta_7d}
+                        points={trendPoints}
+                      />
+                    }
+                  >
                     <span className="jobs-sparkline-cell-value">
                       {aggregate.latest}
                       {aggregate.delta_7d != null && aggregate.delta_7d !== 0 ? (
@@ -206,7 +339,7 @@ export default function WatchlistTable({
                         </span>
                       ) : null}
                     </span>
-                  </span>
+                  </HoverTooltip>
                 );
               })()}
             </td>

@@ -4,6 +4,8 @@ export interface ChartTheme {
   grid: string;
   tick: string;
   line: string;
+  lineUp: string;
+  lineDown: string;
   tooltipBackground: string;
   tooltipBorder: string;
   tooltipText: string;
@@ -13,6 +15,8 @@ const FALLBACK: ChartTheme = {
   grid: "#e5e7eb",
   tick: "#6b7280",
   line: "#2563eb",
+  lineUp: "#16a34a",
+  lineDown: "#dc2626",
   tooltipBackground: "#ffffff",
   tooltipBorder: "#e5e7eb",
   tooltipText: "#0f172a",
@@ -27,6 +31,8 @@ function read(): ChartTheme {
     grid: get("--chart-grid", FALLBACK.grid),
     tick: get("--chart-tick", FALLBACK.tick),
     line: get("--chart-line", FALLBACK.line),
+    lineUp: get("--chart-line-up", FALLBACK.lineUp),
+    lineDown: get("--chart-line-down", FALLBACK.lineDown),
     tooltipBackground: get("--chart-tooltip-bg", FALLBACK.tooltipBackground),
     tooltipBorder: get("--chart-tooltip-border", FALLBACK.tooltipBorder),
     tooltipText: get("--chart-tooltip-text", FALLBACK.tooltipText),
