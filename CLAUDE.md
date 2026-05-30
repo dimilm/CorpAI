@@ -10,7 +10,7 @@ Guidance for Claude Code when working in this repository.
 **CompanyTracker** — a single-process FastAPI + React app that tracks a watchlist of
 stocks, refreshes market data via `yfinance`, scrapes career-portal "open positions"
 (Jobs pipeline), and runs manual AI agents (Fisher, Tournament, Scenario, Red-Flag)
-against OpenAI / Gemini / Ollama. Storage is SQLite.
+against OpenAI / Gemini / Anthropic / Ollama. Storage is SQLite.
 
 - **Backend** (`backend/`): FastAPI + SQLAlchemy 2 + Alembic, Python 3.12, entrypoint `app.main:app`
 - **Frontend** (`frontend/`): React 18 + Vite + TanStack Query + React Router (Node 20+)
@@ -81,7 +81,7 @@ Remove-Item backend\data\sqlite.db    # Windows / PowerShell
   by default; three Playwright adapters need the optional extra. Note: for jobs runs the
   `RunLog.stocks_*` counters represent *job sources*, not stocks. See ADR 0002.
 - **AI agents:** manual-only, one provider active at a time, each run logged in `ai_runs`.
-  Provider calls (OpenAI/Gemini/Ollama/yfinance) must tolerate a missing API key **and**
+  Provider calls (OpenAI/Gemini/Anthropic/Ollama/yfinance) must tolerate a missing API key **and**
   network errors — never assume a key is present and never hard-crash a refresh.
 - **Single-process by design.** Cancel registry, rate limiter, and cron all live in the
   FastAPI process; this breaks under horizontal scaling. See

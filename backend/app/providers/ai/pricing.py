@@ -26,6 +26,14 @@ _GEMINI_PRICES: dict[str, tuple[float, float]] = {
     "gemini-3-flash": (0.0001, 0.0004),
 }
 
+# Keyed by model-family prefix so dated/suffixed ids (e.g.
+# ``claude-opus-4-8``) resolve via the prefix match in ``_lookup``.
+_ANTHROPIC_PRICES: dict[str, tuple[float, float]] = {
+    "claude-opus-4": (0.015, 0.075),
+    "claude-sonnet-4": (0.003, 0.015),
+    "claude-haiku-4": (0.001, 0.005),
+}
+
 
 def _lookup(table: dict[str, tuple[float, float]], model: str) -> tuple[float, float] | None:
     if model in table:
@@ -43,7 +51,15 @@ def estimate_cost(
 ) -> float | None:
     if input_tokens is None and output_tokens is None:
         return None
-    table = _OPENAI_PRICES if provider == "openai" else _GEMINI_PRICES if provider == "gemini" else None
+    table = (
+        _OPENAI_PRICES
+        if provider == "openai"
+        else _GEMINI_PRICES
+        if provider == "gemini"
+        else _ANTHROPIC_PRICES
+        if provider == "anthropic"
+        else None
+    )
     if table is None:
         # Self-hosted (Ollama) and unknown providers report no cost.
         return 0.0

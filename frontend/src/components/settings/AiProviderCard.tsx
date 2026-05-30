@@ -3,18 +3,21 @@ import { SettingsState, TestResult } from "../../hooks/useSettings";
 const AI_PROVIDERS = [
   { value: "openai", label: "OpenAI" },
   { value: "gemini", label: "Google Gemini" },
+  { value: "anthropic", label: "Anthropic Claude" },
   { value: "ollama", label: "Ollama (lokal)" },
 ] as const;
 
 const MODEL_PRESETS: Record<string, string[]> = {
   openai: ["gpt-4o-mini", "gpt-4o"],
   gemini: ["gemini-3-flash-preview", "gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.0-flash"],
+  anthropic: ["claude-sonnet-4-6", "claude-opus-4-8", "claude-haiku-4-5"],
   ollama: [],
 };
 
 const DEFAULT_MODEL: Record<string, string> = {
   openai: "gpt-4o-mini",
   gemini: "gemini-3-flash-preview",
+  anthropic: "claude-sonnet-4-6",
   ollama: "llama3",
 };
 

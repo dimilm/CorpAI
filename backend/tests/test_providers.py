@@ -12,6 +12,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from app.providers.ai.anthropic_provider import AnthropicProvider
 from app.providers.ai.gemini_provider import GeminiProvider
 from app.providers.ai.ollama_provider import OllamaProvider
 from app.providers.ai.openai_provider import OpenAIProvider
@@ -129,6 +130,82 @@ def test_gemini_ping_unreachable_endpoint_raises() -> None:
         endpoint="http://127.0.0.1:1/does-not-exist",
         model="gemini-1.5-flash",
         api_key="fake-key",
+    )
+    with pytest.raises(Exception):
+        asyncio.run(provider.ping())
+
+
+# ---------------------------------------------------------------------------
+# Anthropic
+# ---------------------------------------------------------------------------
+
+
+def test_anthropic_complete_returns_parsed_json_and_token_metadata() -> None:
+    # The provider prefills the assistant turn with "{", so the API echoes
+    # only the remainder of the object.
+    payload = {
+        "content": [{"type": "text", "text": '"score": 7}'}],
+        "usage": {"input_tokens": 120, "output_tokens": 15},
+    }
+    cm, client = _mock_async_client(payload)
+    provider = AnthropicProvider(
+        endpoint="https://api.anthropic.com/v1/messages",
+        model="claude-sonnet-4-6",
+        api_key="sk-ant-key",
+    )
+
+    with patch("app.providers.ai.anthropic_provider.httpx.AsyncClient", return_value=cm):
+        result = asyncio.run(
+            provider.complete("system", "user", json_schema={"type": "object"})
+        )
+
+    assert result.parsed == {"score": 7}
+    assert result.raw_text == '{"score": 7}'
+    assert result.input_tokens == 120
+    assert result.output_tokens == 15
+    assert result.estimated_cost is not None and result.estimated_cost > 0
+
+    # System prompt is a top-level field, not a role:system message, and the
+    # JSON path prefills an assistant turn opening the object.
+    sent_body = client.post.call_args.kwargs["json"]
+    assert sent_body["system"] == "system"
+    assert sent_body["messages"][-1] == {"role": "assistant", "content": "{"}
+
+
+def test_anthropic_complete_without_schema_wraps_text() -> None:
+    payload = {
+        "content": [{"type": "text", "text": "hello"}],
+        "usage": {"input_tokens": 5, "output_tokens": 1},
+    }
+    cm, _ = _mock_async_client(payload)
+    provider = AnthropicProvider(
+        endpoint="https://api.anthropic.com/v1/messages",
+        model="claude-sonnet-4-6",
+        api_key="sk-ant-key",
+    )
+
+    with patch("app.providers.ai.anthropic_provider.httpx.AsyncClient", return_value=cm):
+        result = asyncio.run(provider.complete("system", "user"))
+
+    assert result.parsed == {"text": "hello"}
+    assert result.raw_text == "hello"
+
+
+def test_anthropic_ping_without_key_raises() -> None:
+    provider = AnthropicProvider(
+        endpoint="https://api.anthropic.com/v1/messages",
+        model="claude-sonnet-4-6",
+        api_key=None,
+    )
+    with pytest.raises(ValueError, match="API-Key"):
+        asyncio.run(provider.ping())
+
+
+def test_anthropic_ping_unreachable_endpoint_raises() -> None:
+    provider = AnthropicProvider(
+        endpoint="http://127.0.0.1:1/does-not-exist",
+        model="claude-sonnet-4-6",
+        api_key="sk-ant-fake",
     )
     with pytest.raises(Exception):
         asyncio.run(provider.ping())
