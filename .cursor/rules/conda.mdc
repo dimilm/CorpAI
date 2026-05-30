@@ -1,5 +1,0 @@
----
-alwaysApply: true
----
-
-Before running any python related commands in shell, always activate conda with ```conda activate companytracker```

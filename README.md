@@ -106,7 +106,7 @@ Copy-Item .env.example .env   # add JWT_SECRET and ENCRYPTION_KEY
 uvicorn app.main:app --reload --port 8001
 ```
 
-Re-activate with `conda activate companytracker` in each new shell. See [`backend/AGENTS.md`](backend/AGENTS.md) for IDE interpreter setup.
+Re-activate with `conda activate companytracker` in each new shell.
 
 ### Frontend
 
@@ -190,8 +190,6 @@ See [`docs/adr/0001-single-process-backend.md`](docs/adr/0001-single-process-bac
 
 ## Further reading
 
-- [`AGENTS.md`](AGENTS.md) — tool-neutral coding guide (architecture cheatsheet, do-not-touch list)
-- [`backend/AGENTS.md`](backend/AGENTS.md) — backend-specific conventions
-- [`frontend/AGENTS.md`](frontend/AGENTS.md) — frontend-specific conventions
+- [`CLAUDE.md`](CLAUDE.md) — coding guide (commands, architecture, conventions, do-not-touch list)
 - [`docs/adr/0001-single-process-backend.md`](docs/adr/0001-single-process-backend.md) — single-process design rationale
 - [`docs/adr/0002-jobs-pipeline-integration.md`](docs/adr/0002-jobs-pipeline-integration.md) — jobs pipeline and Playwright extra
