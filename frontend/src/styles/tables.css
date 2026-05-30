@@ -1,0 +1,141 @@
+/* Tables: generic table styles, table-wrapper, table-overlay, num-cell,
+ * actions-*, delta-up/down */
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--bg-surface);
+  color: var(--text-primary);
+}
+
+th,
+td {
+  border: 1px solid var(--border-default);
+  padding: 8px;
+  font-size: 13px;
+}
+
+th > button {
+  border: none;
+  background: transparent;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  color: inherit;
+}
+
+button {
+  padding: 6px 10px;
+}
+
+th.actions-header,
+td.actions-cell {
+  width: 44px;
+  padding: 4px;
+  text-align: center;
+}
+
+/* Numeric columns (prices, percentages, counts). Right-align with tabular
+ * figures so values line up vertically regardless of digit width. The header
+ * button is a flex-button with default centering, so we override it here. */
+th.num-cell,
+td.num-cell {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+th.num-cell > button {
+  width: 100%;
+  text-align: right;
+}
+
+.actions-cell .dropdown {
+  display: inline-block;
+}
+
+td button {
+  margin-right: 6px;
+  margin-bottom: 4px;
+}
+
+td.actions-cell button {
+  margin: 0;
+}
+
+.table-wrapper {
+  position: relative;
+}
+
+.table-wrapper.is-loading table {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.table-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  background: var(--bg-overlay);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.table-overlay-indicator {
+  position: sticky;
+  top: 16px;
+  margin-top: 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: 999px;
+  box-shadow: var(--shadow-lg);
+  color: var(--text-strong);
+  font-size: 13px;
+  font-weight: 500;
+  pointer-events: auto;
+}
+
+.table-overlay-indicator .spinner {
+  width: 18px;
+  height: 18px;
+  border-width: 2px;
+}
+
+.delta-up {
+  color: var(--success-fg, #16a34a);
+}
+
+.delta-down {
+  color: var(--danger);
+}
+
+/* Jobs table */
+.jobs-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.jobs-table th,
+.jobs-table td {
+  padding: 8px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--border-default);
+  font-size: 13px;
+}
+
+.jobs-table th {
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.jobs-table tr:hover td {
+  background: var(--bg-surface-2);
+}

@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+*.egg-info/
+.venv/
+node_modules/
+frontend/dist/
+data/
+*.db
+
+# Local secrets (generated, never commit)
+.env
+docker/.env
+backend/.env

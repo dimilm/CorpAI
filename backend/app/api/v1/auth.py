@@ -1,0 +1,110 @@
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from sqlalchemy.orm import Session
+
+from app.api.deps import csrf_guard, get_current_user, new_csrf_token
+from app.core.config import settings
+from app.core.rate_limit import limiter
+from app.core.security import create_access_token, hash_password, verify_password
+from app.db.session import get_db
+from app.models.user import User
+from app.schemas.auth import ChangePasswordRequest, LoginRequest, LoginResponse, MeResponse
+
+router = APIRouter(prefix="/auth", tags=["auth"])
+
+
+def _set_session_cookies(response: Response, access_token: str, csrf_token: str) -> None:
+    """Write the auth + CSRF cookies with consistent security flags.
+
+    `cookie_secure` defaults to True so deployments behind HTTPS get a Secure
+    cookie out of the box; tests and local HTTP setups can opt out via env.
+    The CSRF cookie is intentionally readable from JS (httponly=False) since
+    the SPA needs to echo it back as `X-CSRF-Token` (double-submit pattern).
+    """
+    secure = settings.cookie_secure
+    samesite = settings.cookie_samesite
+    response.set_cookie(
+        settings.auth_cookie_name,
+        access_token,
+        httponly=True,
+        secure=secure,
+        samesite=samesite,
+        path="/",
+    )
+    response.set_cookie(
+        settings.csrf_cookie_name,
+        csrf_token,
+        httponly=False,
+        secure=secure,
+        samesite=samesite,
+        path="/",
+    )
+
+
+def _clear_session_cookies(response: Response) -> None:
+    response.delete_cookie(settings.auth_cookie_name, path="/")
+    response.delete_cookie(settings.csrf_cookie_name, path="/")
+
+
+@router.post("/login", response_model=LoginResponse)
+@limiter.limit("5/minute")
+def login(
+    request: Request,
+    payload: LoginRequest,
+    response: Response,
+    db: Session = Depends(get_db),
+) -> LoginResponse:
+    # `request` is required by slowapi to derive the rate-limit key.
+    user = db.get(User, payload.username)
+    if not user or not verify_password(payload.password, user.password_hash):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+    token = create_access_token(user.username)
+    csrf_token = new_csrf_token()
+    _set_session_cookies(response, token, csrf_token)
+    return LoginResponse(username=user.username, role=user.role, csrf_token=csrf_token)
+
+
+@router.post("/logout")
+def logout(response: Response) -> dict:
+    _clear_session_cookies(response)
+    return {"ok": True}
+
+
+@router.post("/refresh", response_model=LoginResponse)
+def refresh(response: Response, user: User = Depends(get_current_user)) -> LoginResponse:
+    token = create_access_token(user.username)
+    csrf_token = new_csrf_token()
+    _set_session_cookies(response, token, csrf_token)
+    return LoginResponse(username=user.username, role=user.role, csrf_token=csrf_token)
+
+
+@router.get("/me", response_model=MeResponse)
+def me(user: User = Depends(get_current_user)) -> MeResponse:
+    # GET /me must be a pure read. Rotating the CSRF token here would break
+    # any in-flight requests on other tabs that already captured the previous
+    # token. Token rotation is exclusive to /login and /refresh.
+    return MeResponse(username=user.username, role=user.role)
+
+
+@router.post("/change-password")
+@limiter.limit("5/minute")
+def change_password(
+    request: Request,
+    payload: ChangePasswordRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    _: None = Depends(csrf_guard),
+) -> dict:
+    # 1. Verify current password
+    if not verify_password(payload.current_password, current_user.password_hash):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Current password is incorrect")
+
+    # 2. Ensure new password differs from current
+    if payload.new_password == payload.current_password:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="New password must differ from the current password")
+
+    # 3. Hash and persist new password
+    current_user.password_hash = hash_password(payload.new_password)
+    db.commit()
+
+    # 4. Return success
+    return {"ok": True}

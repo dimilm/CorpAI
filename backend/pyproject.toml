@@ -1,0 +1,51 @@
+[project]
+name = "companytracker-backend"
+version = "0.1.0"
+description = "CompanyTracker FastAPI backend"
+requires-python = ">=3.12,<4.0"
+dependencies = [
+  "fastapi>=0.115.0",
+  "uvicorn[standard]>=0.30.0",
+  "sqlalchemy>=2.0.0",
+  "alembic>=1.13.0",
+  "pydantic-settings>=2.3.0",
+  "python-jose[cryptography]>=3.3.0",
+  "passlib[argon2]>=1.7.4",
+  "python-multipart>=0.0.9",
+  "apscheduler>=3.10.4",
+  "httpx>=0.27.0",
+  "yfinance>=0.2.48",
+  "cryptography>=43.0.0",
+  "slowapi>=0.1.9",
+  "beautifulsoup4>=4.12.0",
+  "pyyaml>=6.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.3.0",
+]
+# Optional: enables the playwright_* job adapters. Pulls a Chromium
+# binary on `python -m playwright install chromium`, so installs that
+# don't need JS-rendered career portals can stay slim.
+playwright = [
+  "playwright>=1.47.0",
+]
+
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+# Explicit package discovery. Without this, setuptools' flat-layout
+# auto-discovery refuses to install because it sees two top-level candidates
+# in backend/: `app/` (the real package) and `migrations/` (Alembic runtime
+# scripts, not a Python package). Docker does not hit this because
+# Dockerfile.backend copies only pyproject.toml into /build before
+# `pip install .` and adds the source afterwards via COPY.
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["app*"]
+exclude = ["migrations*", "tests*", "data*"]
+
+[tool.poetry]
+package-mode = false
