@@ -38,6 +38,9 @@ const JobsPage = lazy(() =>
 const JobSourceFormPage = lazy(() =>
   import("./pages/JobSourceFormPage").then((m) => ({ default: m.JobSourceFormPage }))
 );
+const BatchAnalysisPage = lazy(() =>
+  import("./pages/BatchAnalysisPage").then((m) => ({ default: m.BatchAnalysisPage }))
+);
 
 function PageFallback() {
   return (
@@ -114,6 +117,14 @@ export default function App() {
             element={
               <Protected>
                 <JobSourceFormPage />
+              </Protected>
+            }
+          />
+          <Route
+            path="/ai-batch"
+            element={
+              <Protected>
+                <BatchAnalysisPage />
               </Protected>
             }
           />

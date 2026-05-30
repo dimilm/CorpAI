@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { api } from "../api/client";
-import type { AgentInfo, AIRun } from "../types";
+import type { AgentInfo, AIRun, BatchRunResult } from "../types";
 
 export const AI_AGENTS_QUERY_KEY = ["ai", "agents"] as const;
 export const AI_RUNS_QUERY_KEY = (agentId: string, isin: string) =>
@@ -81,6 +81,29 @@ export function useRunAgent() {
         return [run, ...old];
       });
       qc.invalidateQueries({ queryKey: key });
+    },
+  });
+}
+
+export interface RunAgentsBatchParams {
+  agentIds: string[];
+  isins: string[];
+}
+
+/**
+ * Queue a cartesian product of agents × stocks via `POST /ai/runs/batch`. The
+ * backend runs them serially and returns a queued/skipped summary; callers
+ * surface that (e.g. as a toast) and refetch the stocks list so the watchlist
+ * KI pills pick up the finished runs.
+ */
+export function useRunAgentsBatch() {
+  return useMutation({
+    mutationFn: async ({ agentIds, isins }: RunAgentsBatchParams): Promise<BatchRunResult> => {
+      const res = await api.post("/ai/runs/batch", {
+        agent_ids: agentIds,
+        isins,
+      });
+      return res.data as BatchRunResult;
     },
   });
 }

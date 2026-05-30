@@ -69,3 +69,23 @@ async def execute_run_in_background(
             db.commit()
     finally:
         db.close()
+
+
+async def execute_batch_in_background(
+    items: list[tuple[int, str, dict[str, Any]]],
+) -> None:
+    """Resolve several queued runs sequentially in a single background task.
+
+    Running the `(run_id, agent_id, kwargs)` items one after another (rather
+    than scheduling one task per item) keeps a batch from hammering the AI
+    provider's rate limits. Each item reuses `execute_run_in_background`, which
+    opens/closes its own DB session and already forces a failed run to
+    `status="error"`, so one bad run never aborts the rest of the batch.
+    """
+    for run_id, agent_id, kwargs in items:
+        try:
+            await execute_run_in_background(run_id, agent_id, kwargs)
+        except Exception as exc:  # pragma: no cover - defensive, child handles its own
+            logger.exception(
+                "ai batch item failed (run=%s agent=%s): %s", run_id, agent_id, exc
+            )

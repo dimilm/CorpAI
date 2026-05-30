@@ -68,6 +68,9 @@ export function AppLayout({ children }: Props) {
           <NavLink to="/watchlist" className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}>
             Watchlist
           </NavLink>
+          <NavLink to="/ai-batch" className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}>
+            KI-Analysen
+          </NavLink>
           <NavLink to="/jobs" className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}>
             Stellen
           </NavLink>

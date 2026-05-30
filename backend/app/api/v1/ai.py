@@ -31,8 +31,18 @@ from app.models.ai_run import AIRun
 from app.models.settings import AppSettings
 from app.models.stock import Stock
 from app.providers.ai.base import AIProvider
-from app.schemas.ai import AgentInfoOut, AgentRunRequest, AIRunOut
-from app.services.ai_run_service import execute_run_in_background
+from app.schemas.ai import (
+    AgentInfoOut,
+    AgentRunRequest,
+    AIRunOut,
+    BatchQueuedItem,
+    BatchRunRequest,
+    BatchRunResult,
+)
+from app.services.ai_run_service import (
+    execute_batch_in_background,
+    execute_run_in_background,
+)
 from app.services.provider_factory import build_ai_provider  # re-exported for monkeypatch back-compat
 from app.services.run_status_service import humanize_error
 
@@ -112,6 +122,78 @@ def run_agent(
     run = agent.queue_run(db, stock, **kwargs)
     background.add_task(execute_run_in_background, run.id, agent_id, kwargs)
     return run
+
+
+@router.post(
+    "/runs/batch",
+    response_model=BatchRunResult,
+    status_code=HTTP_202_ACCEPTED,
+    dependencies=[Depends(csrf_guard)],
+)
+def run_agents_batch(
+    payload: BatchRunRequest,
+    background: BackgroundTasks,
+    _: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> BatchRunResult:
+    """Queue every `(agent_id, isin)` combination and run them serially.
+
+    Mirrors `run_agent`'s per-pair validation but never raises on a single bad
+    pair: unknown agents, unknown stocks and pairs already in flight are
+    reported as `skipped` so the rest of the batch still runs. All queued runs
+    are handed to a *single* background task that resolves them one after
+    another, sparing the provider's rate limits.
+    """
+    queued: list[BatchQueuedItem] = []
+    skipped: list[BatchQueuedItem] = []
+    items: list[tuple[int, str, dict]] = []
+
+    # De-duplicate so the same pair can't be queued twice within one request
+    # (the "already running" guard below only sees committed rows).
+    seen: set[tuple[str, str]] = set()
+    for agent_id in payload.agent_ids:
+        agent = get_agent(agent_id)
+        for raw_isin in payload.isins:
+            isin = raw_isin.upper()
+            if (agent_id, isin) in seen:
+                continue
+            seen.add((agent_id, isin))
+
+            if agent is None:
+                skipped.append(
+                    BatchQueuedItem(agent_id=agent_id, isin=isin, status="skipped", reason="Agent unbekannt")
+                )
+                continue
+            stock = db.get(Stock, isin)
+            if stock is None:
+                skipped.append(
+                    BatchQueuedItem(agent_id=agent_id, isin=isin, status="skipped", reason="Aktie nicht gefunden")
+                )
+                continue
+            already_running = (
+                db.query(AIRun)
+                .filter(
+                    AIRun.agent_id == agent_id,
+                    AIRun.isin == stock.isin,
+                    AIRun.status == "running",
+                )
+                .first()
+            )
+            if already_running is not None:
+                skipped.append(
+                    BatchQueuedItem(agent_id=agent_id, isin=stock.isin, status="skipped", reason="läuft bereits")
+                )
+                continue
+
+            run = agent.queue_run(db, stock)
+            queued.append(
+                BatchQueuedItem(agent_id=agent_id, isin=stock.isin, run_id=run.id, status="queued")
+            )
+            items.append((run.id, agent_id, {}))
+
+    if items:
+        background.add_task(execute_batch_in_background, items)
+    return BatchRunResult(queued=queued, skipped=skipped)
 
 
 @router.get(

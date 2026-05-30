@@ -1,0 +1,45 @@
+/* ===== KI-Stapellauf (batch analysis page) ===== */
+.batch-page-header {
+  margin-bottom: 1rem;
+}
+.batch-page-header h1 {
+  margin: 0 0 0.35rem;
+}
+
+.batch-stock-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+.batch-stock-toolbar .form-input {
+  flex: 1 1 16rem;
+}
+
+.batch-stock-list {
+  max-height: 22rem;
+  overflow-y: auto;
+}
+
+.batch-action-bar {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  margin-top: 1rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: 12px;
+}
+.batch-action-summary {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+.batch-action-summary strong {
+  color: var(--text-strong);
+}

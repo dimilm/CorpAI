@@ -115,3 +115,16 @@ export interface AIRun {
   cost_estimate: number | null;
   duration_ms: number | null;
 }
+
+export interface BatchQueuedItem {
+  agent_id: string;
+  isin: string;
+  run_id: number | null;
+  status: string;
+  reason: string | null;
+}
+
+export interface BatchRunResult {
+  queued: BatchQueuedItem[];
+  skipped: BatchQueuedItem[];
+}

@@ -10,6 +10,7 @@ import {
   HomeIcon,
   ListIcon,
   SettingsIcon,
+  SparklesIcon,
   XIcon,
 } from "../icons";
 
@@ -95,6 +96,14 @@ export function MobileDrawer({ open, onClose, username }: Props) {
           >
             <ListIcon size={18} />
             Watchlist
+          </NavLink>
+          <NavLink
+            to="/ai-batch"
+            className={({ isActive }) => `mobile-drawer-link${isActive ? " active" : ""}`}
+            onClick={onClose}
+          >
+            <SparklesIcon size={18} />
+            KI-Analysen
           </NavLink>
           <NavLink
             to="/jobs"
