@@ -31,6 +31,7 @@ import {
   useWatchlistFilters,
 } from "../hooks/useWatchlistFilters";
 import { extractApiError } from "../lib/apiError";
+import { formatImportSummary, type ImportResult } from "../lib/importSummary";
 import { toast } from "../lib/toast";
 import { useCurrentRun, useInvalidateOnRunFinish } from "../lib/runProgress";
 import {
@@ -153,9 +154,9 @@ export function WatchlistPage() {
     try {
       const form = new FormData();
       form.append("file", file);
-      await api.post("/import/csv", form);
+      const res = await api.post<ImportResult>("/import/csv", form);
       await invalidateStocks();
-      toast.success("CSV importiert.");
+      toast.success(formatImportSummary(res.data), { title: "CSV importiert" });
     } catch (err) {
       toast.error(extractApiError(err, "Import fehlgeschlagen."));
     }

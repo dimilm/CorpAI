@@ -298,24 +298,102 @@ def update_stock(db: Session, stock: Stock, payload: StockUpdate) -> Stock:
 
 
 def parse_csv_and_upsert(db: Session, content: bytes) -> dict:
-    seed_rows = extract_seed_rows_from_csv(content)
-    imported = 0
+    seed_rows, skipped = _extract_seed_rows_with_stats(content)
+    created = 0
+    updated = 0
     for row in seed_rows:
+        # Decide created vs updated *before* the merge. `upsert_seed_row`
+        # flushes, so a duplicate ISIN later in the same file correctly reads
+        # back as already-present and counts as an update, not a second insert.
+        existed = db.get(Stock, row["isin"]) is not None
         upsert_seed_row(db, row)
-        imported += 1
+        if existed:
+            updated += 1
+        else:
+            created += 1
     db.commit()
-    return {"imported": imported, "skipped": 0, "errors": []}
+    return {
+        "imported": created + updated,
+        "created": created,
+        "updated": updated,
+        "skipped": skipped,
+        "errors": [],
+    }
 
 
 def extract_seed_rows_from_csv(content: bytes) -> list[dict]:
+    rows, _ = _extract_seed_rows_with_stats(content)
+    return rows
+
+
+def _extract_seed_rows_with_stats(content: bytes) -> tuple[list[dict], int]:
+    """Parse CSV rows and report how many non-empty rows were unusable.
+
+    Two layouts are accepted:
+
+    * the app's own export (`export_csv.py`) — a comma CSV whose header starts
+      with ``isin,name`` — parsed by column name so an exported watchlist
+      round-trips back in; and
+    * the external broker/portfolio export — a semicolon CSV with a fixed
+      positional layout (see the ``CSV_COL_*`` constants).
+
+    A row is "skipped" only when it carries content yet yields no valid ISIN
+    (e.g. a header line or a malformed entry). Fully blank rows are ignored and
+    never counted, so the skipped tally reflects real data the user may want to
+    fix rather than incidental empty lines.
+    """
     text = content.decode("utf-8-sig", errors="ignore")
+    if _looks_like_native_export(text):
+        return _parse_native_export_csv(text)
+
     reader = csv.reader(io.StringIO(text), delimiter=";")
     results: list[dict] = []
+    skipped = 0
     for row in reader:
         row_data = _extract_row_data(row)
         if row_data:
             results.append(row_data)
-    return results
+        elif any(cell.strip() for cell in row):
+            skipped += 1
+    return results, skipped
+
+
+def _looks_like_native_export(text: str) -> bool:
+    """True when the file is the app's own comma export (header ``isin,name,…``)."""
+    first_line = next((ln for ln in text.splitlines() if ln.strip()), "")
+    header = [cell.strip().lower() for cell in first_line.split(",")]
+    return header[:2] == ["isin", "name"]
+
+
+def _parse_native_export_csv(text: str) -> tuple[list[dict], int]:
+    reader = csv.DictReader(io.StringIO(text))
+    results: list[dict] = []
+    skipped = 0
+    for raw in reader:
+        isin = (raw.get("isin") or "").strip().upper()
+        if not ISIN_RE.match(isin):
+            if any((value or "").strip() for value in raw.values()):
+                skipped += 1
+            continue
+        # The comma export only carries the columns below; reasoning, links and
+        # tags are absent, so they stay unset on insert. (See export_csv.py.)
+        results.append(
+            {
+                "isin": isin,
+                "name": (raw.get("name") or "").strip() or isin,
+                "sector": (raw.get("sector") or "").strip() or None,
+                "currency": (raw.get("currency") or "").strip() or None,
+                "tranches": _as_int(raw.get("tranches")),
+            }
+        )
+    return results, skipped
+
+
+def _as_int(value: str | None) -> int:
+    try:
+        return int(float((value or "0").strip()))
+    except ValueError:
+        return 0
 
 
 def _extract_row_data(row: list[str]) -> dict | None:
