@@ -89,20 +89,32 @@ def summarize_run(run: AIRun) -> dict[str, Any] | None:
         verdict = payload.get("verdict")
         if score is None or verdict is None:
             return None
-        return {"score": int(score), "verdict": str(verdict)}
+        return {
+            "score": int(score),
+            "verdict": str(verdict),
+            "summary": str(payload.get("summary") or ""),
+        }
 
     if agent_id == "redflag":
         overall = payload.get("overall_risk")
         flags = payload.get("flags") or []
         if overall is None:
             return None
-        return {"overall_risk": str(overall), "flag_count": len(flags)}
+        return {
+            "overall_risk": str(overall),
+            "flag_count": len(flags),
+            "summary": str(payload.get("summary") or ""),
+        }
 
     if agent_id == "scenario":
         ret = payload.get("expected_return_pct")
         if ret is None:
             return None
-        return {"expected_return_pct": float(ret)}
+        return {
+            "expected_return_pct": float(ret),
+            "time_horizon_years": payload.get("time_horizon_years"),
+            "summary": str(payload.get("summary") or ""),
+        }
 
     if agent_id == "tournament":
         # Only surface a pill when this stock was the bracket's main
@@ -120,6 +132,7 @@ def summarize_run(run: AIRun) -> dict[str, Any] | None:
             "is_winner": winner == run.isin,
             "winner_isin": str(winner),
             "peer_count": peer_count,
+            "summary": str(payload.get("summary") or ""),
         }
 
     return None

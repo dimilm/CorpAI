@@ -852,3 +852,38 @@
 .ai-pill-tournament-loser .ai-pill-short {
   background: var(--text-muted);
 }
+
+/* Rich hover tooltip for each pill (rendered via HoverTooltip's body portal,
+ * styled on top of the shared `.hover-tooltip` bubble). `.hover-tooltip` forces
+ * `white-space: nowrap`; the multi-line body overrides that and caps the width
+ * so the result summary wraps. */
+.ai-pill-tip {
+  display: inline-flex;
+}
+
+.ai-pill-tip-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  white-space: normal;
+  max-width: 260px;
+  text-align: left;
+}
+
+.ai-pill-tip-head {
+  font-weight: 700;
+}
+
+.ai-pill-tip-meta {
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+
+.ai-pill-tip-metric {
+  font-variant-numeric: tabular-nums;
+}
+
+.ai-pill-tip-summary {
+  margin-top: 2px;
+  color: var(--text-secondary);
+}
