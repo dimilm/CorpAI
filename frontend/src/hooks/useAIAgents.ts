@@ -1,12 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { api } from "../api/client";
-import type { AgentInfo, AIRun } from "../types";
+import { STOCKS_LIST_KEY } from "./useStockMutations";
+import type { AgentInfo, AIImportReport, AIRun, BatchRunResult } from "../types";
+import type { AIRunStatus } from "../types/run";
 
 export const AI_AGENTS_QUERY_KEY = ["ai", "agents"] as const;
 export const AI_RUNS_QUERY_KEY = (agentId: string, isin: string) =>
   ["ai", "runs", agentId, isin] as const;
 export const AI_PROMPT_QUERY_KEY = (agentId: string) => ["ai", "prompt", agentId] as const;
+export const RUN_AI_STATUSES_KEY = (runId: number) => ["run-logs", runId, "ai"] as const;
 
 export function useAgents() {
   return useQuery<AgentInfo[]>({
@@ -81,6 +84,77 @@ export function useRunAgent() {
         return [run, ...old];
       });
       qc.invalidateQueries({ queryKey: key });
+    },
+  });
+}
+
+export interface RunAgentsBatchParams {
+  agentIds: string[];
+  isins: string[];
+}
+
+/**
+ * Queue a cartesian product of agents × stocks via `POST /ai/runs/batch`. The
+ * backend runs them serially and returns a queued/skipped summary; callers
+ * surface that (e.g. as a toast) and refetch the stocks list so the watchlist
+ * KI pills pick up the finished runs.
+ */
+export function useRunAgentsBatch() {
+  return useMutation({
+    mutationFn: async ({ agentIds, isins }: RunAgentsBatchParams): Promise<BatchRunResult> => {
+      const res = await api.post("/ai/runs/batch", {
+        agent_ids: agentIds,
+        isins,
+      });
+      return res.data as BatchRunResult;
+    },
+  });
+}
+
+// Per-run detail feed for an AI batch, mirroring `useRunJobStatuses`. Polls
+// every 2s while the run is in flight; otherwise honours the 30s cache.
+export function useRunAIStatuses(runId: number | undefined, polling = false) {
+  return useQuery<AIRunStatus[]>({
+    queryKey: RUN_AI_STATUSES_KEY(runId ?? -1),
+    enabled: runId != null && runId >= 0,
+    queryFn: async () => (await api.get(`/run-logs/${runId}/ai`)).data as AIRunStatus[],
+    refetchInterval: polling ? 2000 : false,
+    staleTime: 30_000,
+  });
+}
+
+export function useCancelAIBatch() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async () =>
+      (await api.post("/ai/runs/batch/cancel")).data as {
+        cancelled: boolean;
+        run_id?: number | null;
+      },
+    onSettled: () => qc.invalidateQueries({ queryKey: ["run-current", "ai"] }),
+  });
+}
+
+/**
+ * Upload a `corpai-ai-analysis` JSON export to `POST /ai/runs/import`. The
+ * backend inserts new runs and skips duplicates; the report lists how many
+ * landed where. On success we refetch the stocks list so the watchlist KI
+ * pills pick up the imported runs, plus any open per-stock run histories.
+ */
+export function useImportAIRuns() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (file: File): Promise<AIImportReport> => {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await api.post("/ai/runs/import", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      return res.data as AIImportReport;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: STOCKS_LIST_KEY });
+      qc.invalidateQueries({ queryKey: ["ai", "runs"] });
     },
   });
 }

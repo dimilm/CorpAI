@@ -105,6 +105,29 @@ class HistoryService:
             "fetched_at": latest_fetched.isoformat() if latest_fetched else None,
         }
 
+    async def warm(self, db: Session, stock: Stock, *, interval: str = "1mo") -> None:
+        """Best-effort: ensure ``interval`` is cached and within its TTL.
+
+        Called from the refresh pipeline so the watchlist price-sparkline has
+        data for every stock — not just ones whose detail page was opened.
+        Re-fetches only when the cache is missing or stale; the per-interval
+        TTL keeps this from hitting the network on every refresh.
+        """
+        period, ttl_hours = INTERVAL_CONFIG[interval]
+        latest_fetched = (
+            db.query(func.max(PriceHistory.fetched_at))
+            .filter(
+                PriceHistory.isin == stock.isin,
+                PriceHistory.interval == interval,
+            )
+            .scalar()
+        )
+        if latest_fetched is not None and (
+            utcnow() - latest_fetched
+        ) <= timedelta(hours=ttl_hours):
+            return
+        await self._refresh_interval(db, stock, period=period, interval=interval)
+
     async def _refresh_interval(
         self, db: Session, stock: Stock, *, period: str, interval: str
     ) -> None:

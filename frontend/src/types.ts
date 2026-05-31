@@ -3,21 +3,26 @@ export type AIAgentId = "fisher" | "scenario" | "redflag" | "tournament";
 export interface FisherPillSummary {
   score: number;
   verdict: "strong" | "neutral" | "weak";
+  summary?: string;
 }
 
 export interface RedFlagPillSummary {
   overall_risk: "low" | "med" | "high";
   flag_count: number;
+  summary?: string;
 }
 
 export interface ScenarioPillSummary {
   expected_return_pct: number;
+  time_horizon_years?: number | null;
+  summary?: string;
 }
 
 export interface TournamentPillSummary {
   is_winner: boolean;
   winner_isin: string;
   peer_count: number;
+  summary?: string;
 }
 
 export type AIPillSummary =
@@ -114,4 +119,26 @@ export interface AIRun {
   error_text: string | null;
   cost_estimate: number | null;
   duration_ms: number | null;
+}
+
+export interface BatchQueuedItem {
+  agent_id: string;
+  isin: string;
+  run_id: number | null;
+  status: string;
+  reason: string | null;
+}
+
+export interface BatchRunResult {
+  queued: BatchQueuedItem[];
+  skipped: BatchQueuedItem[];
+  run_id?: number | null;
+}
+
+export interface AIImportReport {
+  total_rows: number;
+  inserted: number;
+  skipped_existing: number;
+  unmapped_rows: { run: Record<string, unknown>; reason: string }[];
+  malformed_rows: { run: Record<string, unknown>; error: string }[];
 }

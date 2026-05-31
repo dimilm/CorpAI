@@ -12,12 +12,13 @@
  * has been persisted. Setting `data-theme="light"` forces light mode even on
  * dark OSes.
  *
- * The migration to tokens is intentionally incremental: structural surfaces
- * (body, nav, page, buttons, inputs, cards, modals, dialogs, table, empty
- * states, error boundary, KPI/dashboard) read tokens, while semantic colour
- * indicators (success/warning/danger backgrounds in lists, tag-pill palette,
- * recharts axes) currently keep their light-mode literals - they communicate
- * meaning, not theme, and can be migrated component-by-component later.
+ * Both structural surfaces and semantic status indicators read tokens:
+ * status surfaces use the --success/--warning/--danger/--info/--cancel/--neutral
+ * families (soft -bg/-border/-fg that flip per theme, plus theme-independent
+ * -solid dots and -strong saturated chips). Recharts axes read the --chart-*
+ * tokens via useChartTheme. The tag-pill palette (--tag-c*) is categorical
+ * (identity, not meaning): fixed pastel hues with their own dark text, which
+ * stays legible on either theme because the chip carries its own background.
  * ========================================================================== */
 
 :root {
@@ -45,13 +46,48 @@
   --c-gray-900: #111827;
   --c-blue-50: #eff6ff;
   --c-blue-100: #dbeafe;
+  --c-blue-200: #bfdbfe;
+  --c-blue-300: #93c5fd;
   --c-blue-600: #2563eb;
   --c-blue-700: #1d4ed8;
+  --c-blue-800: #1e3a8a;
+  --c-sky-400: #38bdf8;
   --c-red-100: #fee2e2;
   --c-red-200: #fecaca;
+  --c-red-400: #f87171;
+  --c-red-500: #ef4444;
   --c-red-600: #dc2626;
   --c-red-700: #b91c1c;
   --c-red-800: #991b1b;
+  --c-red-900: #7f1d1d;
+  --c-green-100: #dcfce7;
+  --c-green-200: #bbf7d0;
+  --c-green-400: #4ade80;
+  --c-green-500: #22c55e;
+  --c-green-600: #16a34a;
+  --c-green-700: #047857;
+  --c-green-800: #166534;
+  --c-green-900: #14532d;
+  --c-amber-100: #fef3c7;
+  --c-amber-200: #fde68a;
+  --c-amber-400: #fbbf24;
+  --c-amber-600: #d97706;
+  --c-amber-700: #b45309;
+  --c-amber-800: #92400e;
+  --c-orange-100: #ffedd5;
+  --c-orange-200: #fed7aa;
+  --c-orange-300: #fdba74;
+  --c-orange-700: #c2410c;
+  --c-orange-900: #7c2d12;
+  --c-purple-100: #f3e8ff;
+  --c-purple-300: #c4b5fd;
+  --c-purple-600: #7c3aed;
+  --c-purple-700: #6d28d9;
+  --c-cyan-100: #cffafe;
+  --c-cyan-200: #a5f3fc;
+  --c-cyan-300: #67e8f9;
+  --c-cyan-700: #0e7490;
+  --c-cyan-800: #155e75;
   --c-page-light: #f7f7f9;
   --c-page-dark: #0b1220;
   --c-surface-dark: #131a2c;
@@ -70,8 +106,10 @@
   --bg-overlay: rgba(15, 23, 42, 0.45);
 
   --text-primary: var(--c-slate-900);
-  --text-secondary: var(--c-gray-500);
-  --text-muted: var(--c-gray-400);
+  /* secondary/muted bumped one step darker than the original gray-500/gray-400
+   * so small print clears WCAG AA (4.5:1) on the light page surface. */
+  --text-secondary: var(--c-gray-600);
+  --text-muted: var(--c-gray-500);
   --text-strong: var(--c-gray-900);
   --text-inverted: var(--c-white);
   --text-link: var(--c-blue-600);
@@ -90,6 +128,98 @@
   --danger-bg: var(--c-red-100);
   --danger-border: var(--c-red-200);
 
+  /* Semantic status surfaces. Each status has a soft trio (-bg/-border/-fg)
+   * for tinted pills/tiles that flips per theme, plus theme-independent
+   * -solid (indicator dots/fills) and -strong (saturated chip with inverted
+   * text) values. Components reference these instead of literal hex so dark
+   * mode works everywhere. */
+  --success-bg: var(--c-green-100);
+  --success-border: var(--c-green-200);
+  --success-fg: var(--c-green-800);
+  --success-solid: var(--c-green-600);
+  --success-strong: var(--c-green-700);
+
+  --warning-bg: var(--c-amber-100);
+  --warning-border: var(--c-amber-200);
+  --warning-fg: var(--c-amber-800);
+  --warning-solid: var(--c-amber-600);
+  --warning-strong: var(--c-amber-700);
+
+  --danger-fg: var(--c-red-700);
+  --danger-solid: var(--c-red-600);
+  --danger-strong-fill: var(--c-red-700);
+
+  --info-bg: var(--c-blue-100);
+  --info-border: var(--c-blue-200);
+  --info-fg: var(--c-blue-700);
+  --info-solid: var(--c-blue-600);
+  --info-strong: var(--c-blue-700);
+
+  --cancel-bg: var(--c-orange-100);
+  --cancel-border: var(--c-orange-200);
+  --cancel-fg: var(--c-orange-900);
+  --cancel-strong: var(--c-orange-700);
+
+  --neutral-bg: var(--c-gray-200);
+  --neutral-border: var(--c-gray-300);
+  --neutral-fg: var(--c-gray-600);
+  --neutral-strong: var(--c-gray-600);
+
+  /* Purple accent — "risky buy" recommendation & KI provenance. */
+  --purple-bg: var(--c-purple-100);
+  --purple-fg: var(--c-purple-700);
+
+  /* Cyan accent — highlighted / cyan KPIs. */
+  --cyan-bg: var(--c-cyan-100);
+  --cyan-border: var(--c-cyan-200);
+  --cyan-fg: var(--c-cyan-800);
+
+  /* Sentiment text — price/change up & down. Tuned for contrast on the page
+   * surface (positive uses a darker green than the brighter --success-solid). */
+  --pos-text: var(--c-green-700);
+  --neg-text: var(--c-red-600);
+
+  /* Categorical tag palette — fixed pastel bg + own dark text (8 hues). */
+  --tag-c0-bg: #dbeafe; --tag-c0-fg: #1e3a8a;
+  --tag-c1-bg: #dcfce7; --tag-c1-fg: #14532d;
+  --tag-c2-bg: #fef3c7; --tag-c2-fg: #78350f;
+  --tag-c3-bg: #fee2e2; --tag-c3-fg: #7f1d1d;
+  --tag-c4-bg: #ede9fe; --tag-c4-fg: #4c1d95;
+  --tag-c5-bg: #cffafe; --tag-c5-fg: #155e75;
+  --tag-c6-bg: #fce7f3; --tag-c6-fg: #831843;
+  --tag-c7-bg: #fef9c3; --tag-c7-fg: #713f12;
+  --isin-pill-bg: #eef2ff; --isin-pill-fg: #3730a3;
+
+  /* Translucent overlay for count chips sitting on tinted/solid pills. */
+  --overlay-soft: rgba(15, 23, 42, 0.08);
+  --overlay-on-strong: rgba(255, 255, 255, 0.22);
+
+  /* Spacing scale (4px baseline) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+
+  /* Control height rhythm — inputs/selects/buttons share these. The touch
+   * variant aliases --touch-target so the 44px minimum lives in one place. */
+  --control-h: 36px;
+  --control-h-touch: var(--touch-target);
+
+  /* Corner radii */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-pill: 999px;
+
+  /* Monospace stack (ISINs, symbols, code blocks) */
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* Always-dark code / prompt surface (intentionally theme-independent). */
+  --code-bg: var(--c-slate-900);
+  --code-fg: var(--c-slate-200);
+
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
   --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
@@ -107,6 +237,9 @@
   --chart-grid: var(--c-gray-200);
   --chart-tick: var(--c-gray-500);
   --chart-line: var(--c-blue-600);
+  /* Direction-aware sparkline strokes (watchlist Trend column). */
+  --chart-line-up: #16a34a;
+  --chart-line-down: var(--c-red-600);
   --chart-tooltip-bg: var(--c-white);
   --chart-tooltip-border: var(--c-gray-200);
   --chart-tooltip-text: var(--c-slate-900);
@@ -143,6 +276,35 @@
   --danger-bg: rgba(239, 68, 68, 0.12);
   --danger-border: rgba(239, 68, 68, 0.3);
 
+  /* Soft status surfaces — dark theme. -solid/-strong stay as defined in
+   * :root (saturated chips read on either theme). */
+  --success-bg: rgba(34, 197, 94, 0.13);
+  --success-border: rgba(34, 197, 94, 0.3);
+  --success-fg: var(--c-green-400);
+  --warning-bg: rgba(245, 158, 11, 0.13);
+  --warning-border: rgba(245, 158, 11, 0.3);
+  --warning-fg: var(--c-amber-400);
+  --danger-fg: var(--c-red-400);
+  --info-bg: rgba(59, 130, 246, 0.14);
+  --info-border: rgba(59, 130, 246, 0.32);
+  --info-fg: var(--c-blue-300);
+  --cancel-bg: rgba(249, 115, 22, 0.14);
+  --cancel-border: rgba(249, 115, 22, 0.32);
+  --cancel-fg: var(--c-orange-300);
+  --neutral-bg: var(--c-surface-3-dark);
+  --neutral-border: var(--c-border-strong-dark);
+  --neutral-fg: var(--c-slate-400);
+  --overlay-soft: rgba(255, 255, 255, 0.1);
+
+  --purple-bg: rgba(139, 92, 246, 0.16);
+  --purple-fg: var(--c-purple-300);
+  --cyan-bg: rgba(6, 182, 212, 0.14);
+  --cyan-border: rgba(6, 182, 212, 0.32);
+  --cyan-fg: var(--c-cyan-300);
+
+  --pos-text: var(--c-green-400);
+  --neg-text: var(--c-red-400);
+
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
   --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.55);
@@ -150,6 +312,8 @@
   --chart-grid: var(--c-border-dark);
   --chart-tick: var(--c-slate-400);
   --chart-line: #60a5fa;
+  --chart-line-up: #4ade80;
+  --chart-line-down: #f87171;
   --chart-tooltip-bg: var(--c-surface-2-dark);
   --chart-tooltip-border: var(--c-border-strong-dark);
   --chart-tooltip-text: var(--c-slate-100);
@@ -189,6 +353,33 @@
     --danger-bg: rgba(239, 68, 68, 0.12);
     --danger-border: rgba(239, 68, 68, 0.3);
 
+    --success-bg: rgba(34, 197, 94, 0.13);
+    --success-border: rgba(34, 197, 94, 0.3);
+    --success-fg: var(--c-green-400);
+    --warning-bg: rgba(245, 158, 11, 0.13);
+    --warning-border: rgba(245, 158, 11, 0.3);
+    --warning-fg: var(--c-amber-400);
+    --danger-fg: var(--c-red-400);
+    --info-bg: rgba(59, 130, 246, 0.14);
+    --info-border: rgba(59, 130, 246, 0.32);
+    --info-fg: var(--c-blue-300);
+    --cancel-bg: rgba(249, 115, 22, 0.14);
+    --cancel-border: rgba(249, 115, 22, 0.32);
+    --cancel-fg: var(--c-orange-300);
+    --neutral-bg: var(--c-surface-3-dark);
+    --neutral-border: var(--c-border-strong-dark);
+    --neutral-fg: var(--c-slate-400);
+    --overlay-soft: rgba(255, 255, 255, 0.1);
+
+    --purple-bg: rgba(139, 92, 246, 0.16);
+    --purple-fg: var(--c-purple-300);
+    --cyan-bg: rgba(6, 182, 212, 0.14);
+    --cyan-border: rgba(6, 182, 212, 0.32);
+    --cyan-fg: var(--c-cyan-300);
+
+    --pos-text: var(--c-green-400);
+    --neg-text: var(--c-red-400);
+
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
     --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
     --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.55);
@@ -196,6 +387,8 @@
     --chart-grid: var(--c-border-dark);
     --chart-tick: var(--c-slate-400);
     --chart-line: #60a5fa;
+    --chart-line-up: #4ade80;
+    --chart-line-down: #f87171;
     --chart-tooltip-bg: var(--c-surface-2-dark);
     --chart-tooltip-border: var(--c-border-strong-dark);
     --chart-tooltip-text: var(--c-slate-100);

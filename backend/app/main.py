@@ -32,6 +32,7 @@ from app.models.settings import AppSettings
 from app.models.stock import Stock
 from app.models.user import User
 from app.services.refresh_worker import worker as refresh_worker
+from app.services.ai_run_service import recover_dangling_ai_runs
 from app.services.jobs_service import recover_stale_jobs_locks
 from app.services.scheduler_service import (
     recover_stale_locks,
@@ -144,6 +145,7 @@ async def lifespan(_: FastAPI):
     init_db()
     recover_stale_locks()
     recover_stale_jobs_locks()
+    recover_dangling_ai_runs()
     refresh_worker.start()
     start_scheduler()
     try:

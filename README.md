@@ -4,7 +4,7 @@ FastAPI + React app that tracks a watchlist of stocks, scrapes career portals fo
 
 - Backend: FastAPI + SQLAlchemy 2 + Alembic, SQLite, Python 3.12
 - Frontend: React 18 + Vite + TanStack Query
-- AI agents: Fisher, Tournament, Scenario, Red-Flag (OpenAI / Gemini / Ollama)
+- AI agents: Fisher, Tournament, Scenario, Red-Flag (OpenAI / Gemini / Anthropic / Ollama)
 
 ## Start with Docker
 
@@ -148,7 +148,7 @@ Pre-commit gate (run from repo root):
 - Stock watchlist with CRUD, CSV import, filters, sorting, local presets
 - Market data refresh via yfinance (manual + scheduled), run logs, dashboard
 - AI agents per stock: Fisher, Tournament, Scenario, Red-Flag — manual only, logged in `ai_runs`
-- LLM providers: OpenAI, Gemini, Ollama (one active at a time, API key encrypted)
+- LLM providers: OpenAI, Gemini, Anthropic, Ollama (one active at a time, API key encrypted)
 - Career portal scraping (Jobs pipeline) with 5 HTTP adapters + 3 optional Playwright adapters
 - Daily SQLite backup rotation (14 files)
 - Seed export: **Settings → Export Seed** or `GET /api/v1/export/seed-json`

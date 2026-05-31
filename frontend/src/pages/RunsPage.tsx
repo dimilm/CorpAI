@@ -1,11 +1,17 @@
-import { ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 
 import { api } from "../api/client";
+import { FilterPills, FilterPillOption } from "../components/FilterPills";
+import { Modal } from "../components/Modal";
+import { RunSummaryItem } from "../components/RunSummaryItem";
 import { Spinner } from "../components/Spinner";
+import { StatusBadge } from "../components/StatusBadge";
+import { StockSelectList } from "../components/StockSelectList";
 import { useDocumentTitle } from "../hooks/useDocumentTitle";
 import {
+  STOCKS_LIST_KEY,
   useCancelRefreshAll,
   useTriggerRefreshAll,
 } from "../hooks/useStockMutations";
@@ -18,9 +24,9 @@ import {
   nextPollInterval,
   phaseLabel,
   runStatusLabel,
-  STEP_STATUS_LABEL,
   useCurrentRun,
 } from "../lib/runProgress";
+import type { Stock } from "../types";
 import {
   RunStep,
   RunStockStatus,
@@ -28,21 +34,19 @@ import {
   StepStatus,
 } from "../types/run";
 
+type StockFilter = "all" | StepStatus;
+
 const STEP_LABELS: Record<keyof Pick<RunStockStatus, "symbol" | "quote" | "metrics">, string> = {
   symbol: "Symbol",
   quote: "Kurs",
   metrics: "Kennzahlen",
 };
 
-function StepBadge({ status }: { status: StepStatus }) {
-  return <span className={`run-badge run-badge-${status}`}>{STEP_STATUS_LABEL[status]}</span>;
-}
-
 function StepCell({ step, label }: { step: RunStep; label: string }) {
   return (
     <div className="run-step-cell" title={step.error ?? undefined}>
       <span className="run-step-label">{label}</span>
-      <StepBadge status={step.status as StepStatus} />
+      <StatusBadge status={step.status as StepStatus} />
       {step.error && <span className="run-step-error">{step.error}</span>}
     </div>
   );
@@ -52,53 +56,8 @@ function formatStockDuration(s: RunStockStatus): string {
   return formatDuration(liveStockSeconds(s));
 }
 
-function RunSummaryItem({
-  label,
-  value,
-  sub,
-  accent,
-}: {
-  label: string;
-  value: string;
-  sub?: string;
-  accent?: string;
-}) {
-  return (
-    <div className={`run-summary-item${accent ? ` run-summary-${accent}` : ""}`}>
-      <div className="run-summary-label">{label}</div>
-      <div className="run-summary-value">{value}</div>
-      {sub && <div className="run-summary-sub">{sub}</div>}
-    </div>
-  );
-}
-
-function FilterPill({
-  active,
-  count,
-  accent,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  count: number;
-  accent?: string;
-  onClick: () => void;
-  children: ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      className={`run-filter-pill${active ? " is-active" : ""}${accent ? ` run-filter-${accent}` : ""}`}
-      onClick={onClick}
-    >
-      <span>{children}</span>
-      <span className="run-filter-count">{count}</span>
-    </button>
-  );
-}
-
 export function RunsPage() {
-  useDocumentTitle("Aktualisierungen");
+  useDocumentTitle("Marktdaten");
   const queryClient = useQueryClient();
   const triggerRefresh = useTriggerRefreshAll();
   const cancelRefresh = useCancelRefreshAll();
@@ -118,13 +77,33 @@ export function RunsPage() {
         toast.error(extractApiError(err, "Abbruch fehlgeschlagen.")),
     });
   const [showHistory, setShowHistory] = useState(false);
-  const [filter, setFilter] = useState<
-    "all" | "running" | "error" | "done" | "not_started" | "cancelled"
-  >("all");
+  const [filter, setFilter] = useState<StockFilter>("all");
+
+  // Subset refresh: pick specific stocks to reload instead of the whole list.
+  const [subsetOpen, setSubsetOpen] = useState(false);
+  const [subsetSel, setSubsetSel] = useState<Set<string>>(new Set());
 
   const { data: current, isLoading: isLoadingCurrent } = useCurrentRun();
   const runId = current?.id ?? null;
   const isRunning = current?.phase !== "finished" && current != null;
+
+  // Full watchlist, loaded only while the subset picker is open.
+  const allStocksQuery = useQuery<Stock[]>({
+    queryKey: STOCKS_LIST_KEY,
+    queryFn: async () => (await api.get("/stocks")).data as Stock[],
+    enabled: subsetOpen,
+    staleTime: 60_000,
+  });
+
+  const startSubsetRefresh = () =>
+    triggerRefresh.mutate(Array.from(subsetSel), {
+      onSuccess: () => {
+        setSubsetOpen(false);
+        setSubsetSel(new Set());
+      },
+      onError: (err) =>
+        toast.error(extractApiError(err, "Aktualisierung konnte nicht gestartet werden.")),
+    });
 
   // Per-stock query owns its own backoff counter; the previous shared tickRef
   // entangled with the inline summary query, which we now get from the shared
@@ -147,7 +126,7 @@ export function RunsPage() {
     placeholderData: keepPreviousData,
   });
 
-  const [historyType, setHistoryType] = useState<"all" | "market" | "jobs">("all");
+  const [historyType, setHistoryType] = useState<"all" | "market" | "jobs">("market");
   const historyQuery = useQuery<RunSummary[]>({
     queryKey: ["run-logs", historyType],
     queryFn: async () => {
@@ -189,6 +168,75 @@ export function RunsPage() {
     return stocks.filter((s) => s.overall_status === filter);
   }, [stocks, filter]);
 
+  const filterOptions: FilterPillOption<StockFilter>[] = [
+    { value: "all", label: "Alle", count: stocks.length },
+    { value: "running", label: "Läuft", count: counters.running, accent: "running" },
+    { value: "done", label: "Fertig", count: counters.done, accent: "done" },
+    { value: "error", label: "Fehler", count: counters.error, accent: "error" },
+    { value: "not_started", label: "Wartet", count: counters.not_started, accent: "not_started" },
+    {
+      value: "cancelled",
+      label: "Abgebrochen",
+      count: counters.cancelled,
+      accent: "cancelled",
+      hidden: counters.cancelled === 0,
+    },
+  ];
+
+  // Shared across all three render branches so the subset picker is reachable
+  // whether or not a run exists.
+  const subsetButton = (
+    <button
+      type="button"
+      className="btn-secondary"
+      onClick={() => setSubsetOpen(true)}
+      disabled={isRunning || triggerRefresh.isPending}
+      title={isRunning ? "Es läuft bereits ein Update" : "Bestimmte Aktien aktualisieren"}
+    >
+      Auswahl aktualisieren…
+    </button>
+  );
+
+  const subsetModal = (
+    <Modal
+      open={subsetOpen}
+      onClose={() => setSubsetOpen(false)}
+      title="Auswahl aktualisieren"
+      subtitle="Wähle die Aktien, die neu geladen werden sollen."
+      footer={
+        <>
+          <button
+            type="button"
+            className="btn-secondary"
+            onClick={() => setSubsetOpen(false)}
+          >
+            Abbrechen
+          </button>
+          <button
+            type="button"
+            className="btn-primary"
+            disabled={subsetSel.size === 0 || triggerRefresh.isPending}
+            onClick={startSubsetRefresh}
+          >
+            {subsetSel.size > 0 ? `${subsetSel.size} aktualisieren` : "Aktualisieren"}
+          </button>
+        </>
+      }
+    >
+      {allStocksQuery.isLoading ? (
+        <Spinner label="Lade Unternehmen…" />
+      ) : (
+        <StockSelectList
+          stocks={allStocksQuery.data ?? []}
+          selectedIsins={subsetSel}
+          onChange={setSubsetSel}
+          title={null}
+          maxListHeight="50vh"
+        />
+      )}
+    </Modal>
+  );
+
   if (isLoadingCurrent && !current) {
     return (
       <div className="page">
@@ -202,9 +250,10 @@ export function RunsPage() {
       <div className="page">
         <header className="page-header">
           <div className="page-header-title">
-            <h2>Aktualisierungen</h2>
+            <h2>Marktdaten</h2>
           </div>
           <div className="page-header-actions">
+            {subsetButton}
             <button
               type="button"
               className="btn-primary"
@@ -216,6 +265,7 @@ export function RunsPage() {
           </div>
         </header>
         <p>Es wurde noch kein Lauf gestartet.</p>
+        {subsetModal}
       </div>
     );
   }
@@ -229,9 +279,10 @@ export function RunsPage() {
       <div className="page">
         <header className="page-header">
           <div className="page-header-title">
-            <h2>Aktualisierungen</h2>
+            <h2>Marktdaten</h2>
           </div>
           <div className="page-header-actions">
+            {subsetButton}
             <button
               type="button"
               className="btn-primary"
@@ -257,6 +308,7 @@ export function RunsPage() {
             ". Fortschritt und Ergebnis stehen auf der Detailseite des Unternehmens."
           )}
         </p>
+        {subsetModal}
       </div>
     );
   }
@@ -270,7 +322,7 @@ export function RunsPage() {
       <header className="page-header">
         <div className="page-header-title">
           <h2>
-            Aktualisierungen
+            Marktdaten
             <span className="muted-count">
               {" "}
               · Run #{current.id} · {phaseLabel(current.phase)}
@@ -283,8 +335,9 @@ export function RunsPage() {
             className="btn-secondary"
             onClick={() => setShowHistory((v) => !v)}
           >
-            {showHistory ? "Historie ausblenden" : "Historie anzeigen"}
+            {showHistory ? "Verlauf ausblenden" : "Verlauf anzeigen"}
           </button>
+          {subsetButton}
           {isRunning && (
             <button
               type="button"
@@ -340,48 +393,12 @@ export function RunsPage() {
         )}
       </div>
 
-      <div className="run-filter-row">
-        <FilterPill active={filter === "all"} onClick={() => setFilter("all")} count={stocks.length}>
-          Alle
-        </FilterPill>
-        <FilterPill
-          active={filter === "running"}
-          onClick={() => setFilter("running")}
-          count={counters.running}
-          accent="running"
-        >
-          Läuft
-        </FilterPill>
-        <FilterPill active={filter === "done"} onClick={() => setFilter("done")} count={counters.done} accent="done">
-          Fertig
-        </FilterPill>
-        <FilterPill
-          active={filter === "error"}
-          onClick={() => setFilter("error")}
-          count={counters.error}
-          accent="error"
-        >
-          Fehler
-        </FilterPill>
-        <FilterPill
-          active={filter === "not_started"}
-          onClick={() => setFilter("not_started")}
-          count={counters.not_started}
-          accent="not_started"
-        >
-          Wartet
-        </FilterPill>
-        {counters.cancelled > 0 && (
-          <FilterPill
-            active={filter === "cancelled"}
-            onClick={() => setFilter("cancelled")}
-            count={counters.cancelled}
-            accent="cancelled"
-          >
-            Abgebrochen
-          </FilterPill>
-        )}
-      </div>
+      <FilterPills
+        value={filter}
+        onChange={setFilter}
+        options={filterOptions}
+        ariaLabel="Status filtern"
+      />
 
       <div className="run-table-wrapper">
         {filteredStocks.length === 0 ? (
@@ -409,7 +426,7 @@ export function RunsPage() {
                     </div>
                   </td>
                   <td>
-                    <StepBadge status={s.overall_status as StepStatus} />
+                    <StatusBadge status={s.overall_status as StepStatus} />
                   </td>
                   <td>
                     <StepCell step={s.symbol} label={STEP_LABELS.symbol} />
@@ -431,7 +448,7 @@ export function RunsPage() {
       {showHistory && (
         <section className="run-history">
           <div className="run-history-head">
-            <h3>Historie</h3>
+            <h3>Verlauf</h3>
             <div className="jobs-toolbar-filters">
               <button
                 type="button"
@@ -457,9 +474,9 @@ export function RunsPage() {
             </div>
           </div>
           {historyQuery.isLoading ? (
-            <Spinner label="Lade Historie…" />
+            <Spinner label="Lade Verlauf…" />
           ) : (
-            <table className="run-table">
+            <table className="run-table" aria-label="Verlauf der bisherigen Läufe">
               <thead>
                 <tr>
                   <th>Run</th>
@@ -494,6 +511,7 @@ export function RunsPage() {
           )}
         </section>
       )}
+      {subsetModal}
     </div>
   );
 }

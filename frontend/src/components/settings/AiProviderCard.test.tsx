@@ -74,6 +74,47 @@ describe("AiProviderCard", () => {
     expect(screen.getByText(/lokales modell/i)).toBeInTheDocument();
   });
 
+  it("offers Anthropic Claude as a provider option", () => {
+    render(<AiProviderCard {...makeProps()} />);
+    const select = screen.getByLabelText(/ki-anbieter/i) as HTMLSelectElement;
+    const values = Array.from(select.options).map((o) => o.value);
+    expect(values).toContain("anthropic");
+  });
+
+  it("renders Claude model presets when anthropic is selected", () => {
+    render(
+      <AiProviderCard
+        {...makeProps({
+          settings: { ...baseSettings, ai_provider: "anthropic", ai_model: "claude-sonnet-4-6" },
+        })}
+      />
+    );
+    const modelSelect = screen.getByLabelText(/modell/i) as HTMLSelectElement;
+    const values = Array.from(modelSelect.options).map((o) => o.value);
+    expect(values).toEqual(
+      expect.arrayContaining(["claude-sonnet-4-6", "claude-opus-4-8", "claude-haiku-4-5"])
+    );
+  });
+
+  it("offers Claude Code as a keyless provider option", () => {
+    render(<AiProviderCard {...makeProps()} />);
+    const select = screen.getByLabelText(/ki-anbieter/i) as HTMLSelectElement;
+    const values = Array.from(select.options).map((o) => o.value);
+    expect(values).toContain("claudecode");
+  });
+
+  it("shows the subscription hint and no key field for claudecode", () => {
+    render(
+      <AiProviderCard
+        {...makeProps({
+          settings: { ...baseSettings, ai_provider: "claudecode", ai_api_key_set: false },
+        })}
+      />
+    );
+    expect(screen.getByText(/claude-code-abo/i)).toBeInTheDocument();
+    expect(screen.queryByText("Schlüssel hinterlegt")).not.toBeInTheDocument();
+  });
+
   it("calls onTestConnection when test button is clicked", () => {
     const onTestConnection = vi.fn();
     render(<AiProviderCard {...makeProps({ onTestConnection })} />);

@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 
+import { HoverTooltip } from "../HoverTooltip";
 import { parseBackendDate } from "../../lib/format";
 import type {
   AIAgentId,
@@ -30,9 +31,14 @@ const RISK_LABEL: Record<RedFlagPillSummary["overall_risk"], string> = {
   high: "Hoch",
 };
 
+const VERDICT_LABEL: Record<FisherPillSummary["verdict"], string> = {
+  strong: "Stark",
+  neutral: "Neutral",
+  weak: "Schwach",
+};
+
 // Formats "vor 3 Tagen" / "vor 5 Stunden" / "vor 2 Min." / "gerade eben". Used
-// only for the tooltip — the pill itself stays compact, the timestamp lives
-// in the title attribute.
+// in the tooltip head — the pill itself stays compact.
 function formatRelative(iso: string): string {
   const ts = parseBackendDate(iso).getTime();
   if (Number.isNaN(ts)) return iso;
@@ -48,10 +54,6 @@ function formatRelative(iso: string): string {
   return `vor ${months} ${months === 1 ? "Monat" : "Monaten"}`;
 }
 
-function tooltipFor(agentId: AIAgentId, run: AILatestRun): string {
-  return `${AGENT_LABEL[agentId]} · ${formatRelative(run.created_at)} · ${run.model}`;
-}
-
 interface PillProps {
   agentId: AIAgentId;
   run: AILatestRun;
@@ -59,21 +61,38 @@ interface PillProps {
   className: string;
   short: string;
   detail: string;
+  // One-line result metric shown bold in the tooltip (e.g. "Score 22/30 · Stark").
+  metric: string;
+  // Free-text result summary from the agent run; omitted when empty.
+  summary?: string;
 }
 
-function AIPill({ agentId, run, isin, className, short, detail }: PillProps) {
+function AIPill({ agentId, run, isin, className, short, detail, metric, summary }: PillProps) {
   return (
-    <Link
-      to={`/stocks/${isin}?agent=${agentId}`}
-      className={`ai-pill ${className}`}
-      title={tooltipFor(agentId, run)}
-      onClick={(e) => e.stopPropagation()}
+    <HoverTooltip
+      className="ai-pill-tip"
+      content={
+        <span className="ai-pill-tip-body">
+          <span className="ai-pill-tip-head">
+            {AGENT_LABEL[agentId]} · {run.model}
+          </span>
+          <span className="ai-pill-tip-meta">{formatRelative(run.created_at)}</span>
+          <span className="ai-pill-tip-metric">{metric}</span>
+          {summary ? <span className="ai-pill-tip-summary">{summary}</span> : null}
+        </span>
+      }
     >
-      <span className="ai-pill-short" aria-hidden="true">
-        {short}
-      </span>
-      <span className="ai-pill-detail">{detail}</span>
-    </Link>
+      <Link
+        to={`/stocks/${isin}?agent=${agentId}`}
+        className={`ai-pill ${className}`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <span className="ai-pill-short" aria-hidden="true">
+          {short}
+        </span>
+        <span className="ai-pill-detail">{detail}</span>
+      </Link>
+    </HoverTooltip>
   );
 }
 
@@ -97,10 +116,13 @@ export function AIPillRow({ stock }: Props) {
           className={`ai-pill-fisher ai-pill-verdict-${s.verdict}`}
           short="F"
           detail={`${s.score}/30`}
+          metric={`Score ${s.score}/30 · ${VERDICT_LABEL[s.verdict]}`}
+          summary={s.summary}
         />
       );
     } else if (agentId === "redflag") {
       const s = summary as unknown as RedFlagPillSummary;
+      const flagLabel = `${s.flag_count} ${s.flag_count === 1 ? "Flag" : "Flags"}`;
       pills.push(
         <AIPill
           key={agentId}
@@ -110,12 +132,15 @@ export function AIPillRow({ stock }: Props) {
           className={`ai-pill-risk ai-pill-risk-${s.overall_risk}`}
           short="R"
           detail={s.flag_count > 0 ? `${RISK_LABEL[s.overall_risk]} · ${s.flag_count}` : RISK_LABEL[s.overall_risk]}
+          metric={`Risiko ${RISK_LABEL[s.overall_risk]} · ${flagLabel}`}
+          summary={s.summary}
         />
       );
     } else if (agentId === "scenario") {
       const s = summary as unknown as ScenarioPillSummary;
       const positive = s.expected_return_pct >= 0;
       const detail = `${positive ? "+" : ""}${s.expected_return_pct.toFixed(1)} %`;
+      const horizon = s.time_horizon_years ? ` · ${s.time_horizon_years} J.` : "";
       pills.push(
         <AIPill
           key={agentId}
@@ -125,10 +150,14 @@ export function AIPillRow({ stock }: Props) {
           className={`ai-pill-scenario ai-pill-scenario-${positive ? "pos" : "neg"}`}
           short="S"
           detail={detail}
+          metric={`Erwartete Rendite ${detail}${horizon}`}
+          summary={s.summary}
         />
       );
     } else if (agentId === "tournament") {
       const s = summary as unknown as TournamentPillSummary;
+      const detail = s.is_winner ? "Sieger" : "Kein Sieg";
+      const peerLabel = `${s.peer_count} ${s.peer_count === 1 ? "Peer" : "Peers"}`;
       pills.push(
         <AIPill
           key={agentId}
@@ -137,7 +166,9 @@ export function AIPillRow({ stock }: Props) {
           isin={stock.isin}
           className={`ai-pill-tournament ai-pill-tournament-${s.is_winner ? "winner" : "loser"}`}
           short="T"
-          detail={s.is_winner ? "Sieger" : "Kein Sieg"}
+          detail={detail}
+          metric={`${detail} · vs ${peerLabel}`}
+          summary={s.summary}
         />
       );
     }
@@ -146,10 +177,9 @@ export function AIPillRow({ stock }: Props) {
   if (pills.length === 0) {
     return <span className="ai-pill-empty">–</span>;
   }
-  // `verdict-strong` / `redflag-low` / etc. carry over their colour palette
-  // from the existing detail-view styles via the pill class names below.
-  // Tooltip is plain-text (`title`) for portability; if we ever need richer
-  // tooltips we can layer them on top without touching consumers.
+  // Pill colours carry over from the detail-view palette via the class names
+  // above. The tooltip is a rich `HoverTooltip` (body portal) so the scrolling
+  // table can't clip it; see `.ai-pill-tip*` in ai.css.
   return <span className="ai-pill-row">{pills}</span>;
 }
 

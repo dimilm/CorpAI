@@ -28,12 +28,18 @@ class AIRun(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, nullable=False)
     provider: Mapped[str] = mapped_column(String(32), nullable=False)
     model: Mapped[str] = mapped_column(String(128), nullable=False)
-    status: Mapped[str] = mapped_column(String(16), nullable=False)  # "done" | "error"
+    status: Mapped[str] = mapped_column(String(16), nullable=False)  # "running" | "done" | "error" | "cancelled"
     input_payload: Mapped[dict] = mapped_column(JSON, nullable=False)
     result_payload: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     error_text: Mapped[str | None] = mapped_column(Text, nullable=True)
     cost_estimate: Mapped[float | None] = mapped_column(Float, nullable=True)
     duration_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # Links a run to the RunLog "batch bracket" that schedules it, so the
+    # frontend can reuse the existing RunLog progress machinery for AI batches.
+    # SET NULL on delete keeps historical AIRun rows after a RunLog is purged.
+    batch_run_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("run_logs.id", ondelete="SET NULL"), nullable=True
+    )
 
 
 Index(
@@ -42,3 +48,6 @@ Index(
     AIRun.agent_id,
     AIRun.created_at.desc(),
 )
+Index("ix_ai_runs_batch_run_id", AIRun.batch_run_id)
+# Startup recovery (recover_dangling_ai_runs) filters by status == "running".
+Index("ix_ai_runs_status", AIRun.status)

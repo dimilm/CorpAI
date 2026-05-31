@@ -101,21 +101,21 @@
 }
 
 .ai-status-pill.ai-status-done {
-  background: #ecfdf5;
-  color: #047857;
-  border-color: #a7f3d0;
+  background: var(--success-bg);
+  color: var(--success-fg);
+  border-color: var(--success-border);
 }
 
 .ai-status-pill.ai-status-error {
-  background: #fef2f2;
-  color: #b91c1c;
-  border-color: #fecaca;
+  background: var(--danger-bg);
+  color: var(--danger-fg);
+  border-color: var(--danger-border);
 }
 
 .ai-status-pill.ai-status-running {
-  background: #eff6ff;
-  color: #1d4ed8;
-  border-color: #bfdbfe;
+  background: var(--info-bg);
+  color: var(--info-fg);
+  border-color: var(--info-border);
 }
 
 .ai-status-pill.ai-status-running::before {
@@ -124,7 +124,7 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #3b82f6;
+  background: var(--info-solid);
   margin-right: 6px;
   animation: ai-pulse 1.4s ease-in-out infinite;
 }
@@ -267,7 +267,7 @@
 }
 
 .ai-peer-chip-isin {
-  font-family: ui-monospace, SFMono-Regular, "Menlo", monospace;
+  font-family: var(--font-mono);
   font-size: 10px;
   color: var(--text-muted);
 }
@@ -275,8 +275,8 @@
 .ai-prompt-text {
   margin: 0;
   padding: 12px;
-  background: #0f172a;
-  color: #e2e8f0;
+  background: var(--code-bg);
+  color: var(--code-fg);
   border-radius: 8px;
   font-size: 12px;
   line-height: 1.5;
@@ -319,7 +319,7 @@
 
 .ai-result-stat-sub {
   display: block;
-  font-family: ui-monospace, SFMono-Regular, "Menlo", monospace;
+  font-family: var(--font-mono);
   font-size: 11px;
   color: var(--text-muted);
   margin-top: 2px;
@@ -355,8 +355,8 @@
 .ai-result-raw {
   margin: 0;
   padding: 12px;
-  background: #0f172a;
-  color: #e2e8f0;
+  background: var(--code-bg);
+  color: var(--code-fg);
   border-radius: 8px;
   font-size: 11px;
   max-height: 60vh;
@@ -373,18 +373,18 @@
 }
 
 .ai-result-verdict-strong {
-  background: #dcfce7;
-  color: #166534;
+  background: var(--success-bg);
+  color: var(--success-fg);
 }
 
 .ai-result-verdict-neutral {
-  background: #fef3c7;
-  color: #92400e;
+  background: var(--warning-bg);
+  color: var(--warning-fg);
 }
 
 .ai-result-verdict-weak {
-  background: #fee2e2;
-  color: #991b1b;
+  background: var(--danger-bg);
+  color: var(--danger-fg);
 }
 
 .ai-result-table {
@@ -416,18 +416,18 @@
 }
 
 .ai-rating-0 {
-  background: #fee2e2;
-  color: #991b1b;
+  background: var(--danger-bg);
+  color: var(--danger-fg);
 }
 
 .ai-rating-1 {
-  background: #fef3c7;
-  color: #92400e;
+  background: var(--warning-bg);
+  color: var(--warning-fg);
 }
 
 .ai-rating-2 {
-  background: #dcfce7;
-  color: #166534;
+  background: var(--success-bg);
+  color: var(--success-fg);
 }
 
 .ai-scenario-grid {
@@ -447,18 +447,18 @@
 }
 
 .ai-scenario-bull {
-  border-color: #bbf7d0;
-  background: linear-gradient(180deg, rgba(240, 253, 244, 0.6), var(--bg-surface));
+  border-color: var(--success-border);
+  background: linear-gradient(180deg, var(--success-bg), var(--bg-surface));
 }
 
 .ai-scenario-base {
-  border-color: #cbd5f5;
-  background: linear-gradient(180deg, rgba(239, 246, 255, 0.6), var(--bg-surface));
+  border-color: var(--info-border);
+  background: linear-gradient(180deg, var(--info-bg), var(--bg-surface));
 }
 
 .ai-scenario-bear {
-  border-color: #fecaca;
-  background: linear-gradient(180deg, rgba(254, 242, 242, 0.6), var(--bg-surface));
+  border-color: var(--danger-border);
+  background: linear-gradient(180deg, var(--danger-bg), var(--bg-surface));
 }
 
 .ai-scenario-card-head {
@@ -509,18 +509,18 @@
 }
 
 .ai-redflag-low {
-  background: #dcfce7;
-  color: #166534;
+  background: var(--success-bg);
+  color: var(--success-fg);
 }
 
 .ai-redflag-med {
-  background: #fef3c7;
-  color: #92400e;
+  background: var(--warning-bg);
+  color: var(--warning-fg);
 }
 
 .ai-redflag-high {
-  background: #fee2e2;
-  color: #991b1b;
+  background: var(--danger-bg);
+  color: var(--danger-fg);
 }
 
 .ai-redflag-list {
@@ -542,17 +542,17 @@
 
 .ai-redflag-item.ai-redflag-low {
   background: var(--bg-surface);
-  border-left-color: #16a34a;
+  border-left-color: var(--success-solid);
 }
 
 .ai-redflag-item.ai-redflag-med {
   background: var(--bg-surface);
-  border-left-color: #f59e0b;
+  border-left-color: var(--warning-solid);
 }
 
 .ai-redflag-item.ai-redflag-high {
   background: var(--bg-surface);
-  border-left-color: #dc2626;
+  border-left-color: var(--danger-solid);
 }
 
 .ai-redflag-head {
@@ -667,15 +667,15 @@
 }
 
 .ai-tournament-side-isin {
-  font-family: ui-monospace, SFMono-Regular, "Menlo", monospace;
+  font-family: var(--font-mono);
   font-size: 10px;
   color: var(--text-muted);
   letter-spacing: 0.02em;
 }
 
 .ai-tournament-side.ai-winner {
-  background: #dcfce7;
-  color: #166534;
+  background: var(--success-bg);
+  color: var(--success-fg);
 }
 
 .ai-tournament-side.ai-winner .ai-tournament-side-name {
@@ -683,7 +683,7 @@
 }
 
 .ai-tournament-side.ai-winner .ai-tournament-side-isin {
-  color: #4ade80;
+  color: var(--success-fg);
 }
 
 .ai-tournament-vs {
@@ -760,8 +760,8 @@
   align-items: center;
   justify-content: center;
   border-radius: 999px;
-  background: rgba(15, 23, 42, 0.18);
-  color: #ffffff;
+  background: var(--neutral-strong);
+  color: var(--c-white);
   font-size: 9px;
   font-weight: 700;
 }
@@ -777,73 +777,73 @@
 
 /* Fisher pill — score colour follows the verdict (mirrors ai-result-verdict-*). */
 .ai-pill-verdict-strong {
-  background: #dcfce7;
-  color: #166534;
+  background: var(--success-bg);
+  color: var(--success-fg);
 }
 .ai-pill-verdict-strong .ai-pill-short {
-  background: #16a34a;
+  background: var(--success-solid);
 }
 .ai-pill-verdict-neutral {
-  background: #fef3c7;
-  color: #92400e;
+  background: var(--warning-bg);
+  color: var(--warning-fg);
 }
 .ai-pill-verdict-neutral .ai-pill-short {
-  background: #d97706;
+  background: var(--warning-solid);
 }
 .ai-pill-verdict-weak {
-  background: #fee2e2;
-  color: #991b1b;
+  background: var(--danger-bg);
+  color: var(--danger-fg);
 }
 .ai-pill-verdict-weak .ai-pill-short {
-  background: #dc2626;
+  background: var(--danger-solid);
 }
 
 /* RedFlag pill — severity colour mirrors ai-redflag-{low,med,high}. */
 .ai-pill-risk-low {
-  background: #dcfce7;
-  color: #166534;
+  background: var(--success-bg);
+  color: var(--success-fg);
 }
 .ai-pill-risk-low .ai-pill-short {
-  background: #16a34a;
+  background: var(--success-solid);
 }
 .ai-pill-risk-med {
-  background: #fef3c7;
-  color: #92400e;
+  background: var(--warning-bg);
+  color: var(--warning-fg);
 }
 .ai-pill-risk-med .ai-pill-short {
-  background: #d97706;
+  background: var(--warning-solid);
 }
 .ai-pill-risk-high {
-  background: #fee2e2;
-  color: #991b1b;
+  background: var(--danger-bg);
+  color: var(--danger-fg);
 }
 .ai-pill-risk-high .ai-pill-short {
-  background: #dc2626;
+  background: var(--danger-solid);
 }
 
 /* Scenario pill — sign of expected_return_pct drives colour. */
 .ai-pill-scenario-pos {
-  background: #dcfce7;
-  color: #166534;
+  background: var(--success-bg);
+  color: var(--success-fg);
 }
 .ai-pill-scenario-pos .ai-pill-short {
-  background: #16a34a;
+  background: var(--success-solid);
 }
 .ai-pill-scenario-neg {
-  background: #fee2e2;
-  color: #991b1b;
+  background: var(--danger-bg);
+  color: var(--danger-fg);
 }
 .ai-pill-scenario-neg .ai-pill-short {
-  background: #dc2626;
+  background: var(--danger-solid);
 }
 
 /* Tournament pill — winner = gold accent, otherwise neutral grey. */
 .ai-pill-tournament-winner {
-  background: #fef3c7;
-  color: #78350f;
+  background: var(--warning-bg);
+  color: var(--warning-fg);
 }
 .ai-pill-tournament-winner .ai-pill-short {
-  background: #d97706;
+  background: var(--warning-solid);
 }
 .ai-pill-tournament-loser {
   background: var(--bg-subtle);
@@ -851,4 +851,39 @@
 }
 .ai-pill-tournament-loser .ai-pill-short {
   background: var(--text-muted);
+}
+
+/* Rich hover tooltip for each pill (rendered via HoverTooltip's body portal,
+ * styled on top of the shared `.hover-tooltip` bubble). `.hover-tooltip` forces
+ * `white-space: nowrap`; the multi-line body overrides that and caps the width
+ * so the result summary wraps. */
+.ai-pill-tip {
+  display: inline-flex;
+}
+
+.ai-pill-tip-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  white-space: normal;
+  max-width: 260px;
+  text-align: left;
+}
+
+.ai-pill-tip-head {
+  font-weight: 700;
+}
+
+.ai-pill-tip-meta {
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+
+.ai-pill-tip-metric {
+  font-variant-numeric: tabular-nums;
+}
+
+.ai-pill-tip-summary {
+  margin-top: 2px;
+  color: var(--text-secondary);
 }

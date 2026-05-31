@@ -17,10 +17,11 @@ The router exposes the agent registry to the frontend:
 """
 from __future__ import annotations
 
+import json
 import time
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
-from fastapi.responses import PlainTextResponse
+from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, Query, UploadFile
+from fastapi.responses import PlainTextResponse, Response
 from sqlalchemy.orm import Session
 from starlette.status import HTTP_202_ACCEPTED, HTTP_409_CONFLICT
 
@@ -28,12 +29,26 @@ from app.agents import get_agent, list_agents
 from app.api.deps import csrf_guard, get_ai_provider, get_current_user, require_admin
 from app.db.session import get_db
 from app.models.ai_run import AIRun
+from app.models.run_log import RunLog
 from app.models.settings import AppSettings
 from app.models.stock import Stock
 from app.providers.ai.base import AIProvider
-from app.schemas.ai import AgentInfoOut, AgentRunRequest, AIRunOut
-from app.services.ai_run_service import execute_run_in_background
+from app.schemas.ai import (
+    AgentInfoOut,
+    AgentRunRequest,
+    AIRunOut,
+    BatchQueuedItem,
+    BatchRunRequest,
+    BatchRunResult,
+)
+from app.services import ai_run_io
+from app.services.ai_run_io import AIImportReport
+from app.services.ai_run_service import (
+    execute_batch_in_background,
+    execute_run_in_background,
+)
 from app.services.provider_factory import build_ai_provider  # re-exported for monkeypatch back-compat
+from app.services.refresh_lock import request_cancel_for_run
 from app.services.run_status_service import humanize_error
 
 __all__ = ["router", "build_ai_provider"]
@@ -112,6 +127,159 @@ def run_agent(
     run = agent.queue_run(db, stock, **kwargs)
     background.add_task(execute_run_in_background, run.id, agent_id, kwargs)
     return run
+
+
+@router.post(
+    "/runs/batch",
+    response_model=BatchRunResult,
+    status_code=HTTP_202_ACCEPTED,
+    dependencies=[Depends(csrf_guard)],
+)
+def run_agents_batch(
+    payload: BatchRunRequest,
+    background: BackgroundTasks,
+    _: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> BatchRunResult:
+    """Queue every `(agent_id, isin)` combination and run them serially.
+
+    Mirrors `run_agent`'s per-pair validation but never raises on a single bad
+    pair: unknown agents, unknown stocks and pairs already in flight are
+    reported as `skipped` so the rest of the batch still runs. All queued runs
+    are handed to a *single* background task that resolves them one after
+    another, sparing the provider's rate limits.
+    """
+    queued: list[BatchQueuedItem] = []
+    skipped: list[BatchQueuedItem] = []
+    items: list[tuple[int, str, dict]] = []
+    queued_ids: list[int] = []
+
+    # De-duplicate so the same pair can't be queued twice within one request
+    # (the "already running" guard below only sees committed rows).
+    seen: set[tuple[str, str]] = set()
+    for agent_id in payload.agent_ids:
+        agent = get_agent(agent_id)
+        for raw_isin in payload.isins:
+            isin = raw_isin.upper()
+            if (agent_id, isin) in seen:
+                continue
+            seen.add((agent_id, isin))
+
+            if agent is None:
+                skipped.append(
+                    BatchQueuedItem(agent_id=agent_id, isin=isin, status="skipped", reason="Agent unbekannt")
+                )
+                continue
+            stock = db.get(Stock, isin)
+            if stock is None:
+                skipped.append(
+                    BatchQueuedItem(agent_id=agent_id, isin=isin, status="skipped", reason="Aktie nicht gefunden")
+                )
+                continue
+            already_running = (
+                db.query(AIRun)
+                .filter(
+                    AIRun.agent_id == agent_id,
+                    AIRun.isin == stock.isin,
+                    AIRun.status == "running",
+                )
+                .first()
+            )
+            if already_running is not None:
+                skipped.append(
+                    BatchQueuedItem(agent_id=agent_id, isin=stock.isin, status="skipped", reason="läuft bereits")
+                )
+                continue
+
+            run = agent.queue_run(db, stock)
+            queued.append(
+                BatchQueuedItem(agent_id=agent_id, isin=stock.isin, run_id=run.id, status="queued")
+            )
+            items.append((run.id, agent_id, {}))
+            queued_ids.append(run.id)
+
+    if not items:
+        return BatchRunResult(queued=queued, skipped=skipped, run_id=None)
+
+    # Wrap the queued runs in a RunLog "batch bracket" so the frontend can
+    # reuse the existing RunLog progress/cancel machinery (market & jobs runs).
+    run_log = RunLog(run_type="ai", phase="queued", stocks_total=len(items), status="ok")
+    db.add(run_log)
+    db.commit()
+    db.refresh(run_log)
+
+    # `queue_run` commits each AIRun internally, so stamp the bracket id with a
+    # single bulk update after the RunLog exists.
+    db.query(AIRun).filter(AIRun.id.in_(queued_ids)).update(
+        {AIRun.batch_run_id: run_log.id}, synchronize_session=False
+    )
+    db.commit()
+
+    background.add_task(execute_batch_in_background, items, run_log.id)
+    return BatchRunResult(queued=queued, skipped=skipped, run_id=run_log.id)
+
+
+@router.post("/runs/batch/cancel", dependencies=[Depends(csrf_guard)])
+def cancel_agents_batch(
+    _: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> dict:
+    """Request cancellation of the most recent in-flight AI batch.
+
+    Flags the latest unfinished ``run_type='ai'`` RunLog in the shared cancel
+    registry; the background task notices the flag before its next item and
+    marks the remaining runs as ``cancelled``.
+    """
+    run_log = (
+        db.query(RunLog)
+        .filter(RunLog.run_type == "ai", RunLog.phase != "finished")
+        .order_by(RunLog.id.desc())
+        .first()
+    )
+    if run_log is None:
+        return {"cancelled": False, "run_id": None}
+    request_cancel_for_run(run_log.id)
+    return {"cancelled": True, "run_id": run_log.id}
+
+
+@router.get("/runs/export")
+def export_ai_runs(
+    _: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> Response:
+    """Download every finished AI run as a single JSON file.
+
+    Mounted before ``/runs/{run_id}`` so FastAPI does not try to parse the
+    literal string ``export`` as an int. The file round-trips through
+    ``POST /ai/runs/import`` on another deployment (transfer) or the same one
+    (backup/restore).
+    """
+    payload = json.dumps(ai_run_io.build_export(db), ensure_ascii=False, indent=2)
+    return Response(
+        content=payload,
+        media_type="application/json",
+        headers={"Content-Disposition": 'attachment; filename="ai-analysis.json"'},
+    )
+
+
+@router.post(
+    "/runs/import",
+    response_model=AIImportReport,
+    dependencies=[Depends(csrf_guard)],
+)
+async def import_ai_runs(
+    file: UploadFile = File(...),
+    _: dict = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> AIImportReport:
+    """Upload a `corpai-ai-analysis` export and insert new runs (skip existing).
+
+    Runs whose ISIN is not in the watchlist are reported in ``unmapped_rows``;
+    re-importing the same file is idempotent (duplicates land in
+    ``skipped_existing``).
+    """
+    content = await file.read()
+    return ai_run_io.import_runs(db, content)
 
 
 @router.get(

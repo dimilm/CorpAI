@@ -6,9 +6,10 @@ import { api } from "../api/client";
 import { EmptyState } from "../components/EmptyState";
 import { Modal } from "../components/Modal";
 import { PlusIcon, SearchIcon } from "../components/icons";
-import { Spinner } from "../components/Spinner";
+import { TableSkeleton } from "../components/Skeleton";
 import WatchlistTable from "../components/WatchlistTable";
 import { WatchlistMobileList } from "../components/watchlist/WatchlistMobileList";
+import { useStockPriceTrends } from "../hooks/useStockPriceTrends";
 import { ActiveFilterChips } from "../components/watchlist/ActiveFilterChips";
 import type { ActiveFilter } from "../components/watchlist/ActiveFilterChips";
 import { CreateStockModal } from "../components/watchlist/CreateStockModal";
@@ -31,6 +32,7 @@ import {
   useWatchlistFilters,
 } from "../hooks/useWatchlistFilters";
 import { extractApiError } from "../lib/apiError";
+import { formatImportSummary, type ImportResult } from "../lib/importSummary";
 import { toast } from "../lib/toast";
 import { useCurrentRun, useInvalidateOnRunFinish } from "../lib/runProgress";
 import {
@@ -74,6 +76,7 @@ export function WatchlistPage() {
 
   const thresholds = useColorThresholds();
   const { jobsByIsin, trendsByIsin } = useJobsAggregate();
+  const { data: pricesByIsin } = useStockPriceTrends();
   const presets = usePresets({
     filterValues: filters.values,
     onApply: filters.applyValues,
@@ -127,7 +130,7 @@ export function WatchlistPage() {
 
   async function triggerAll() {
     try {
-      await triggerAllMutation.mutateAsync();
+      await triggerAllMutation.mutateAsync(undefined);
     } catch (error) {
       toast.error(extractApiError(error, "Refresh-All konnte nicht gestartet werden."));
       return;
@@ -153,9 +156,9 @@ export function WatchlistPage() {
     try {
       const form = new FormData();
       form.append("file", file);
-      await api.post("/import/csv", form);
+      const res = await api.post<ImportResult>("/import/csv", form);
       await invalidateStocks();
-      toast.success("CSV importiert.");
+      toast.success(formatImportSummary(res.data), { title: "CSV importiert" });
     } catch (err) {
       toast.error(extractApiError(err, "Import fehlgeschlagen."));
     }
@@ -291,7 +294,7 @@ export function WatchlistPage() {
       />
 
       {!initialLoaded || (listLoading && stocks.length === 0) ? (
-        <Spinner label="Lade Watchlist..." />
+        <TableSkeleton rows={8} columns={15} label="Lade Watchlist…" />
       ) : filtered.length === 0 ? (
         activeFilters.length > 0 ? (
           <EmptyState
@@ -365,6 +368,7 @@ export function WatchlistPage() {
             refreshDisabled={isRunActive}
             jobsByIsin={jobsByIsin}
             trendsByIsin={trendsByIsin}
+            pricesByIsin={pricesByIsin}
           />
         </div>
       )}

@@ -21,7 +21,7 @@ export interface RunStockStatus {
 
 export interface RunSummary {
   id: number;
-  run_type: "market" | "jobs";
+  run_type: "market" | "jobs" | "ai";
   started_at: string;
   finished_at: string | null;
   duration_seconds: number;
@@ -32,4 +32,14 @@ export interface RunSummary {
   phase: "queued" | "running" | "finished";
   status: string;
   error_details: string | null;
+}
+
+export interface AIRunStatus {
+  isin: string;
+  stock_name: string | null;
+  agent_id: string;
+  status: StepStatus;
+  error_text: string | null;
+  created_at: string;
+  duration_ms: number | null;
 }

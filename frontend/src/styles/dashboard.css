@@ -23,13 +23,13 @@
 }
 
 .dashboard-runline-ok {
-  background: #ecfdf5;
-  border-left-color: #16a34a;
+  background: var(--success-bg);
+  border-left-color: var(--success-solid);
 }
 
 .dashboard-runline-warn {
-  background: #fef2f2;
-  border-left-color: #dc2626;
+  background: var(--danger-bg);
+  border-left-color: var(--danger-solid);
 }
 
 .dashboard-runline-empty {
@@ -70,8 +70,8 @@
 .kpi-card {
   background: var(--bg-surface);
   border: 1px solid var(--border-default);
-  border-radius: 12px;
-  padding: 16px 18px;
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -105,8 +105,8 @@
   font-variant-numeric: tabular-nums;
 }
 
-.kpi-card-delta-positive { color: #15803d; }
-.kpi-card-delta-negative { color: #b91c1c; }
+.kpi-card-delta-positive { color: var(--pos-text); }
+.kpi-card-delta-negative { color: var(--neg-text); }
 .kpi-card-delta-neutral  { color: var(--text-secondary); }
 
 /* Movers (winners / losers) */
@@ -119,8 +119,8 @@
 .mover-card {
   background: var(--bg-surface);
   border: 1px solid var(--border-default);
-  border-radius: 12px;
-  padding: 16px;
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
   box-shadow: var(--shadow-sm);
 }
 
@@ -189,8 +189,8 @@
   transition: width 0.2s ease;
 }
 
-.mover-bar-winner { background: #16a34a; }
-.mover-bar-loser  { background: #dc2626; }
+.mover-bar-winner { background: var(--success-solid); }
+.mover-bar-loser  { background: var(--danger-solid); }
 
 .mover-pct {
   font-size: 12px;
@@ -200,5 +200,5 @@
   text-align: right;
 }
 
-.mover-pct-winner { color: #15803d; }
-.mover-pct-loser  { color: #b91c1c; }
+.mover-pct-winner { color: var(--pos-text); }
+.mover-pct-loser  { color: var(--neg-text); }

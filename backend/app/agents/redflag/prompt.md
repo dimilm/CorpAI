@@ -24,6 +24,11 @@ JSON-Objekt im beschriebenen Schema.
 ## Vorgehen
 
 1. Liste maximal 10 Flags. Wenn nichts auffällt, gib eine leere Liste zurück.
+   Beschränke dich nicht auf Kennzahlen-Auffälligkeiten: Echte Red Flags
+   (Governance, regulatorische Verfahren, Bilanz-/Restatement-Themen, Kunden-/
+   Lieferanten-Konzentration, Rechtsstreite) stehen meist nicht in den `metrics`
+   – nutze dein Fachwissen und, falls verfügbar, gezielte Websuche, um solche
+   belegbaren Risiken zu finden.
 2. Pro Flag: `category`, `severity`, prägnanter `title` (≤ 80 Zeichen),
    `description` (1–3 Sätze), `evidence_hint` (Hinweis, woran man das im
    Datenbestand erkennen kann, z.B. "Forward-KGV deutlich über 5-Jahres-
@@ -38,6 +43,11 @@ JSON mit `name`, `sector`, `currency`, `current_price`, `metrics`,
 `tags` (Liste von Klassifizierungs-Tags wie z. B. `moat`), `reasoning`.
 Wenn ein Datenpunkt fehlt, ist das selbst keine Red Flag, kann aber im
 `evidence_hint` einer „Datenlücke"-Flag erwähnt werden, falls relevant.
+
+**Keine erfundenen Risiken:** Melde nur Flags, die du in den Daten, in
+fundiertem Wissen oder einer belegbaren Quelle verankern kannst. Hast du
+recherchiert, nenne die Quelle im `evidence_hint` (z.B. „BaFin-Mitteilung 2024").
+Erfinde niemals Verfahren, Klagen oder Bilanzthemen – im Zweifel kein Flag.
 
 ## Antwortformat (Pflicht)
 

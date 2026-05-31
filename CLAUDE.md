@@ -5,12 +5,32 @@ Guidance for Claude Code when working in this repository.
 > This is the single source of truth for working in this repo. Setup details and
 > rationale live in [`README.md`](README.md) and the ADRs under [`docs/adr/`](docs/adr/).
 
+## gstack
+
+[gstack](https://github.com/garrytan/gstack) is installed globally at `~/.claude/skills/gstack`.
+
+- **Install (each teammate, once — requires the [Bun](https://bun.sh) runtime):**
+  ```bash
+  git clone --depth 1 https://github.com/garrytan/gstack.git ~/.claude/skills/gstack
+  cd ~/.claude/skills/gstack && ./setup --team
+  ```
+- **Web browsing:** always use the gstack `/browse` skill for any web browsing.
+  **Never use the `mcp__claude-in-chrome__*` tools.**
+- **Available skills:** `/office-hours`, `/plan-ceo-review`, `/plan-eng-review`,
+  `/plan-design-review`, `/design-consultation`, `/design-shotgun`, `/design-html`,
+  `/review`, `/ship`, `/land-and-deploy`, `/canary`, `/benchmark`, `/browse`,
+  `/connect-chrome`, `/qa`, `/qa-only`, `/design-review`, `/setup-browser-cookies`,
+  `/setup-deploy`, `/setup-gbrain`, `/retro`, `/investigate`, `/document-release`,
+  `/document-generate`, `/codex`, `/cso`, `/autoplan`, `/plan-devex-review`,
+  `/devex-review`, `/careful`, `/freeze`, `/guard`, `/unfreeze`, `/gstack-upgrade`,
+  `/learn`.
+
 ## Project
 
 **CompanyTracker** — a single-process FastAPI + React app that tracks a watchlist of
 stocks, refreshes market data via `yfinance`, scrapes career-portal "open positions"
 (Jobs pipeline), and runs manual AI agents (Fisher, Tournament, Scenario, Red-Flag)
-against OpenAI / Gemini / Ollama. Storage is SQLite.
+against OpenAI / Gemini / Anthropic / Ollama. Storage is SQLite.
 
 - **Backend** (`backend/`): FastAPI + SQLAlchemy 2 + Alembic, Python 3.12, entrypoint `app.main:app`
 - **Frontend** (`frontend/`): React 18 + Vite + TanStack Query + React Router (Node 20+)
@@ -81,8 +101,17 @@ Remove-Item backend\data\sqlite.db    # Windows / PowerShell
   by default; three Playwright adapters need the optional extra. Note: for jobs runs the
   `RunLog.stocks_*` counters represent *job sources*, not stocks. See ADR 0002.
 - **AI agents:** manual-only, one provider active at a time, each run logged in `ai_runs`.
-  Provider calls (OpenAI/Gemini/Ollama/yfinance) must tolerate a missing API key **and**
+  Provider calls (OpenAI/Gemini/Anthropic/Ollama/yfinance) must tolerate a missing API key **and**
   network errors — never assume a key is present and never hard-crash a refresh.
+- **Shared run-progress pattern:** market refresh, jobs, and AI batch analysis all
+  surface live progress through the same machinery — a `RunLog` row
+  (`run_type='market'|'jobs'|'ai'`, phase `queued→running→finished` + `stocks_*`
+  counters), a `GET /run-logs/current?run_type=…` summary feed, and a
+  `GET /run-logs/{id}/{stocks|jobs|ai}` detail feed. The frontend polls via
+  `useCurrentRun(runType)` ([`src/lib/runProgress.tsx`](frontend/src/lib/runProgress.tsx))
+  with backoff that stops at `finished`, and renders with the shared `StatusBadge` /
+  `FilterPills` / `.run-summary-*` / `.run-progress-*` building blocks. **Reuse this
+  for any new long-running feature — do not roll a separate polling/progress UI.**
 - **Single-process by design.** Cancel registry, rate limiter, and cron all live in the
   FastAPI process; this breaks under horizontal scaling. See
   [`docs/adr/0001-single-process-backend.md`](docs/adr/0001-single-process-backend.md).
@@ -117,6 +146,9 @@ Remove-Item backend\data\sqlite.db    # Windows / PowerShell
 - Auth is **JWT cookie + CSRF** — keep that in mind when adding/testing endpoints.
 - In Docker the SQLite DB and backups live in the `app_data` named volume, **not** the host
   `data/` dir; use `docker/restore-backups.{ps1,sh}` to copy them out.
+- **Line endings:** the repo stores LF and `.gitattributes` pins `eol=lf`, so the working
+  tree stays LF even on Windows (where global `core.autocrlf=true` would otherwise convert
+  to CRLF). Write files as LF; don't re-encode to CRLF or you'll create whole-file diffs.
 
 ## Further reading
 

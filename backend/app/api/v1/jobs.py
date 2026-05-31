@@ -1,25 +1,35 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Body, Depends
 
 from app.api.deps import csrf_guard, get_current_user
+from app.schemas.run_log import RefreshAllRequest
 from app.services.scheduler_service import (
     cancel_current_refresh,
     start_refresh_all_background,
+    start_subset_refresh_background,
 )
 
 router = APIRouter(prefix="/jobs", tags=["jobs"])
 
 
 @router.post("/refresh-all", dependencies=[Depends(csrf_guard)])
-def refresh_all(_: dict = Depends(get_current_user)) -> dict:
+def refresh_all(
+    payload: RefreshAllRequest | None = Body(default=None),
+    _: dict = Depends(get_current_user),
+) -> dict:
     """Kick off a refresh on the worker thread and return immediately.
 
     The actual work runs on `RefreshWorker` (see `services/refresh_worker.py`)
     so the FastAPI event loop stays free. Progress can be polled via
     `GET /run-logs/current` and `GET /run-logs/{id}/stocks`.
 
+    With no body (or an empty `isins` list) the whole watchlist is refreshed;
     `manual=True` bypasses the weekend skip — the user explicitly clicked the
-    button, so we honour the request even on Saturday/Sunday.
+    button, so we honour the request even on Saturday/Sunday. When `isins` are
+    supplied only that subset is refreshed.
     """
+    isins = payload.isins if payload else None
+    if isins:
+        return start_subset_refresh_background(isins)
     return start_refresh_all_background(manual=True)
 
 

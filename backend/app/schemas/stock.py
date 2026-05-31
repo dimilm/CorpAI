@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from typing import Any
 
 from pydantic import BaseModel, Field, field_validator
@@ -132,3 +132,21 @@ class HistoryResponse(BaseModel):
     interval: str
     points: list[HistoryPoint]
     fetched_at: str | None = None
+
+
+class StockPriceTrendPoint(BaseModel):
+    """Tiny per-bar point for the watchlist price sparkline: (date, close)."""
+
+    date: date
+    close: float
+
+
+class StockPriceTrendItem(BaseModel):
+    isin: str
+    points: list[StockPriceTrendPoint]
+
+
+class StockPriceTrendsOut(BaseModel):
+    days: int
+    interval: str
+    items: list[StockPriceTrendItem]

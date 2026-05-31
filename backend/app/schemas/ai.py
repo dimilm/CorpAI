@@ -36,3 +36,47 @@ class AgentRunRequest(BaseModel):
     `peers` to override the auto-suggested bracket."""
 
     peers: list[str] | None = None
+
+
+class BatchRunRequest(BaseModel):
+    """Run a set of agents against a set of stocks (cartesian product).
+
+    Every `(agent_id, isin)` pair is queued as its own `AIRun`; the pairs are
+    then executed serially in a single background task to spare the provider's
+    rate limits.
+    """
+
+    agent_ids: list[str]
+    isins: list[str]
+
+
+class BatchQueuedItem(BaseModel):
+    """Outcome for one `(agent_id, isin)` pair of a batch request."""
+
+    agent_id: str
+    isin: str
+    run_id: int | None = None
+    status: str  # "queued" | "skipped"
+    reason: str | None = None  # populated when status == "skipped"
+
+
+class BatchRunResult(BaseModel):
+    queued: list[BatchQueuedItem]
+    skipped: list[BatchQueuedItem]
+    # RunLog id of the batch bracket created for the queued runs. None when no
+    # pair was queued. Distinct from the per-item `run_id` (an AIRun id).
+    run_id: int | None = None
+
+
+class AIRunStatusOut(BaseModel):
+    """Per-pair progress detail for a ``run_type='ai'`` RunLog bracket."""
+
+    isin: str
+    stock_name: str | None = None
+    agent_id: str
+    status: str  # running | done | error | cancelled
+    error_text: str | None = None
+    created_at: datetime
+    duration_ms: int | None = None
+
+    model_config = ConfigDict(from_attributes=True)

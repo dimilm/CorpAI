@@ -25,8 +25,8 @@
 .settings-card {
   background: var(--bg-surface);
   border: 1px solid var(--border-default);
-  border-radius: 12px;
-  padding: 20px;
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -105,8 +105,8 @@
   align-items: center;
   gap: 6px;
   padding: 4px 10px;
-  background: #dcfce7;
-  color: #047857;
+  background: var(--success-bg);
+  color: var(--success-fg);
   border-radius: 999px;
   font-size: 12px;
   font-weight: 600;
@@ -118,7 +118,7 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #047857;
+  background: var(--success-solid);
 }
 
 .settings-key-disabled {
@@ -150,13 +150,13 @@
 }
 
 .settings-status-ok {
-  background: #dcfce7;
-  color: #047857;
+  background: var(--success-bg);
+  color: var(--success-fg);
 }
 
 .settings-status-error {
-  background: #fee2e2;
-  color: #b91c1c;
+  background: var(--danger-bg);
+  color: var(--danger-fg);
 }
 
 .settings-advanced {
@@ -247,11 +247,11 @@
 }
 
 .settings-footer-status.is-ok {
-  color: #047857;
+  color: var(--success-fg);
 }
 
 .settings-footer-status.is-error {
-  color: #b91c1c;
+  color: var(--danger-fg);
 }
 
 .settings-footer-actions {

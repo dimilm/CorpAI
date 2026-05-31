@@ -42,10 +42,13 @@ export function useDeleteStock() {
   });
 }
 
+// Pass a list of ISINs to refresh only that subset; omit (or pass an empty
+// list) to refresh the whole watchlist.
 export function useTriggerRefreshAll() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: () => api.post("/jobs/refresh-all"),
+    mutationFn: (isins?: string[]) =>
+      api.post("/jobs/refresh-all", isins && isins.length ? { isins } : undefined),
     onSettled: () => qc.invalidateQueries({ queryKey: ["run-current"] }),
   });
 }

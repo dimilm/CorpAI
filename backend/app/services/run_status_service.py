@@ -8,6 +8,7 @@ Retention: only the two most recent runs keep their per-stock detail rows.
 
 from __future__ import annotations
 
+import logging
 from typing import Iterable
 
 from sqlalchemy.orm import Session
@@ -15,6 +16,8 @@ from sqlalchemy.orm import Session
 from app.core.time import utcnow
 from app.models.run_log import RunLog, RunStockStatus
 from app.models.stock import Stock
+
+logger = logging.getLogger(__name__)
 
 STEP_FIELDS = ("symbol", "quote", "metrics")
 
@@ -34,6 +37,9 @@ def humanize_error(exc: Exception) -> str:
     if "connection" in lower or "network" in lower:
         return "Verbindungsfehler"
     if len(message) > 240:
+        # Only here is detail genuinely lost. Log the full message once so it
+        # stays recoverable for debugging, then return the truncated form.
+        logger.warning("step error truncated, full detail: %s", message)
         return message[:237] + "..."
     return message
 

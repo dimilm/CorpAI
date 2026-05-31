@@ -143,9 +143,18 @@ def test_summarize_run_fisher() -> None:
         model="m",
         status="done",
         input_payload={},
-        result_payload={"total_score": 22, "verdict": "strong", "questions": []},
+        result_payload={
+            "total_score": 22,
+            "verdict": "strong",
+            "questions": [],
+            "summary": "Solide Wachstumsstory",
+        },
     )
-    assert summarize_run(run) == {"score": 22, "verdict": "strong"}
+    assert summarize_run(run) == {
+        "score": 22,
+        "verdict": "strong",
+        "summary": "Solide Wachstumsstory",
+    }
 
 
 def test_summarize_run_redflag_counts_flags() -> None:
@@ -160,10 +169,14 @@ def test_summarize_run_redflag_counts_flags() -> None:
         result_payload={
             "overall_risk": "med",
             "flags": [{"a": 1}, {"b": 2}, {"c": 3}],
-            "summary": "",
+            "summary": "Hohe Verschuldung",
         },
     )
-    assert summarize_run(run) == {"overall_risk": "med", "flag_count": 3}
+    assert summarize_run(run) == {
+        "overall_risk": "med",
+        "flag_count": 3,
+        "summary": "Hohe Verschuldung",
+    }
 
 
 def test_summarize_run_scenario() -> None:
@@ -175,9 +188,17 @@ def test_summarize_run_scenario() -> None:
         model="m",
         status="done",
         input_payload={},
-        result_payload={"expected_return_pct": 12.5},
+        result_payload={
+            "expected_return_pct": 12.5,
+            "time_horizon_years": 5,
+            "summary": "Aufwärtspotenzial",
+        },
     )
-    assert summarize_run(run) == {"expected_return_pct": 12.5}
+    assert summarize_run(run) == {
+        "expected_return_pct": 12.5,
+        "time_horizon_years": 5,
+        "summary": "Aufwärtspotenzial",
+    }
 
 
 def test_summarize_run_tournament_only_when_main_isin_matches() -> None:
@@ -196,13 +217,17 @@ def test_summarize_run_tournament_only_when_main_isin_matches() -> None:
                 {"isin": "PEER00000002"},
             ],
         },
-        result_payload={"winner_isin": "AILK00000006"},
+        result_payload={
+            "winner_isin": "AILK00000006",
+            "summary": "Bester im Bracket",
+        },
     )
     summary = summarize_run(own_bracket)
     assert summary == {
         "is_winner": True,
         "winner_isin": "AILK00000006",
         "peer_count": 2,
+        "summary": "Bester im Bracket",
     }
 
     foreign_bracket = AIRun(
@@ -256,7 +281,11 @@ def test_build_latest_run_summaries_filters_tournament_peer_runs() -> None:
         summaries = build_latest_run_summaries(db, ["AILK00000007"])
         per_agent = summaries.get("AILK00000007", {})
         assert "tournament" not in per_agent
-        assert per_agent["fisher"]["summary"] == {"score": 18, "verdict": "neutral"}
+        assert per_agent["fisher"]["summary"] == {
+            "score": 18,
+            "verdict": "neutral",
+            "summary": "",
+        }
     finally:
         db.close()
 
@@ -288,7 +317,11 @@ def test_get_stocks_endpoint_includes_latest_ai_runs() -> None:
     assert len(rows) == 1
     runs = rows[0]["latest_ai_runs"]
     assert "fisher" in runs
-    assert runs["fisher"]["summary"] == {"score": 26, "verdict": "strong"}
+    assert runs["fisher"]["summary"] == {
+        "score": 26,
+        "verdict": "strong",
+        "summary": "",
+    }
     assert runs["fisher"]["model"] == "gpt-stub"
 
 
@@ -323,4 +356,5 @@ def test_get_stock_detail_endpoint_includes_latest_ai_runs() -> None:
     assert body["latest_ai_runs"]["redflag"]["summary"] == {
         "overall_risk": "high",
         "flag_count": 2,
+        "summary": "",
     }

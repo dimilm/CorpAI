@@ -13,7 +13,10 @@ unten beschriebenen Schema.
    für volatile Tech-Werte, 5 Jahre für Industrie/Bluechips).
 2. Schreibe pro Szenario 3–5 stichpunktartige `assumptions` (Markt, Margen,
    Multiples, Risiken). Die Annahmen müssen plausibel und differenziert
-   sein – `bull` darf nicht einfach das Spiegelbild von `bear` sein.
+   sein – `bull` darf nicht einfach das Spiegelbild von `bear` sein. Verankere
+   sie in deinem Fachwissen über das Unternehmen und – falls dir Recherche-Tools
+   (Websuche) zur Verfügung stehen – in aktuellen Fakten (jüngste Ergebnisse,
+   Guidance, Branchentrends); nenne die Quelle knapp in der jeweiligen Annahme.
 3. Leite ein `target_price` pro Szenario ab. Begründe das Multiple oder die
    DCF-Mechanik knapp in den Annahmen.
 4. Vergib eine `probability` pro Szenario (0–1). Summe ≈ 1.0.
@@ -30,6 +33,12 @@ JSON mit `name`, `sector`, `currency`, `current_price`, `metrics` (Forward-
 KGV, 5-Jahres-KGV-Spanne, Revenue Growth, Eigenkapitalquote,
 Verschuldungsquote, Marktkapitalisierung), `tags` (Liste von
 Klassifizierungs-Tags wie z. B. `moat`), `reasoning`.
+
+`current_price` und `metrics` sind der **faktische Anker** für die Kursziele.
+Für die qualitativen Annahmen nutze dein Fachwissen und – falls verfügbar –
+Websuche. Erfinde keine präzisen Zahlen (Umsatz, Guidance, Multiples): Was du
+nicht belegen oder fundiert ableiten kannst, kennzeichne als Schätzung bzw.
+begründe es transparent in den Annahmen.
 
 ## Antwortformat (Pflicht)
 

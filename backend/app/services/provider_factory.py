@@ -1,7 +1,9 @@
 from app.core.config import settings as app_settings
 from app.core.crypto import SecretCrypto
 from app.models.settings import AppSettings
+from app.providers.ai.anthropic_provider import AnthropicProvider
 from app.providers.ai.base import AIProvider
+from app.providers.ai.claudecode_provider import ClaudeCodeProvider
 from app.providers.ai.gemini_provider import GeminiProvider
 from app.providers.ai.ollama_provider import OllamaProvider
 from app.providers.ai.openai_provider import OpenAIProvider
@@ -24,5 +26,12 @@ def build_ai_provider(row: AppSettings) -> AIProvider:
     if provider_name == "gemini":
         endpoint = row.ai_endpoint or "https://generativelanguage.googleapis.com/v1beta"
         return GeminiProvider(endpoint=endpoint, model=row.ai_model, api_key=api_key)
+    if provider_name == "anthropic":
+        endpoint = row.ai_endpoint or "https://api.anthropic.com/v1/messages"
+        return AnthropicProvider(endpoint=endpoint, model=row.ai_model, api_key=api_key)
+    if provider_name == "claudecode":
+        # Local-only: uses the Claude Code CLI + subscription instead of an API key.
+        # `ai_endpoint` optionally overrides the CLI executable path/name.
+        return ClaudeCodeProvider(model=row.ai_model or "sonnet", cli_path=row.ai_endpoint or "claude")
     endpoint = row.ai_endpoint or "https://api.openai.com/v1/chat/completions"
     return OpenAIProvider(endpoint=endpoint, api_key=api_key, model=row.ai_model)

@@ -50,6 +50,7 @@ from app.services.refresh_runner import (
     run_refresh_all_blocking,
     start_refresh_all_background,
     start_single_refresh_background,
+    start_subset_refresh_background,
 )
 from app.providers.market.yfinance_provider import YFinanceProvider
 
@@ -88,6 +89,7 @@ __all__ = [
     "start_refresh_all_background",
     "start_scheduler",
     "start_single_refresh_background",
+    "start_subset_refresh_background",
     "sync_scheduler_from_db",
 ]
 

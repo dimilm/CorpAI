@@ -1,0 +1,76 @@
+/* ===== StockSelectList — reusable watchlist multi-select table ===== */
+.stock-select-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.stock-select-toolbar .search-field {
+  flex: 1 1 16rem;
+}
+
+/* No fixed height by default: the table grows with its content and the page
+ * scrolls (same as the Watchlist). `overflow-y: auto` only kicks in when a
+ * caller caps the height via `maxListHeight` (e.g. inside the Marktdaten
+ * modal), giving that context its own inner scroll. */
+.stock-select-list {
+  overflow-y: auto;
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+}
+
+.stock-select-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.stock-select-table th,
+.stock-select-table td {
+  border: none;
+  border-bottom: 1px solid var(--border-default);
+  padding: 7px 10px;
+  text-align: left;
+}
+
+.stock-select-table thead th {
+  background: var(--bg-surface);
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.stock-select-table tbody tr {
+  cursor: pointer;
+}
+
+.stock-select-table tbody tr:hover td {
+  background: var(--bg-surface-2);
+}
+
+.stock-select-table tbody tr.is-selected td {
+  background: var(--accent-soft-bg);
+}
+
+.stock-select-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.stock-select-col-check {
+  width: 40px;
+  text-align: center;
+}
+
+.stock-select-col-check input {
+  cursor: pointer;
+}
+
+.stock-select-isin {
+  font-family: ui-monospace, SFMono-Regular, "Menlo", monospace;
+  font-size: 11px;
+  color: var(--text-muted);
+}

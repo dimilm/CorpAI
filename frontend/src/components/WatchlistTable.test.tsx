@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 
@@ -14,6 +14,12 @@ import type { JobsTrendPoint } from "../hooks/useJobsTrendsAggregate";
 vi.mock("./jobs/JobsSparkline", () => ({
   JobsSparkline: ({ points }: { points: JobsTrendPoint[] }) => (
     <div data-testid="jobs-sparkline-stub" data-points={points.length} />
+  ),
+}));
+
+vi.mock("./PriceSparkline", () => ({
+  PriceSparkline: ({ points }: { points: { close: number }[] }) => (
+    <div data-testid="price-sparkline-stub" data-points={points.length} />
   ),
 }));
 
@@ -70,12 +76,21 @@ function renderTable(props: Partial<Parameters<typeof WatchlistTable>[0]>) {
 }
 
 describe("WatchlistTable column structure", () => {
-  it("renders 14 <th> elements in the header row", () => {
+  it("renders 15 <th> elements in the header row", () => {
     const { container } = renderTable({});
     const headerRow = container.querySelector("thead tr");
     expect(headerRow).not.toBeNull();
     const headers = headerRow!.querySelectorAll("th");
-    expect(headers).toHaveLength(14);
+    expect(headers).toHaveLength(15);
+  });
+
+  it("renders a 'Kurs 12M' header to the right of 'Kurs'", () => {
+    const { container } = renderTable({});
+    const headers = Array.from(container.querySelectorAll("thead th"));
+    const kursIdx = headers.findIndex((th) => th.textContent === "Kurs");
+    const kurs12mIdx = headers.findIndex((th) => th.textContent === "Kurs 12M");
+    expect(kursIdx).toBeGreaterThanOrEqual(0);
+    expect(kurs12mIdx).toBe(kursIdx + 1);
   });
 
   it("renders a 'Trend' header and a 'Stellen' header", () => {
@@ -156,15 +171,37 @@ describe("WatchlistTable jobs sparkline cell", () => {
     // Sparkline stub is absent from the Stellen <td>.
     expect(within(stellenCell).queryByTestId("jobs-sparkline-stub")).not.toBeInTheDocument();
 
-    // Tooltip on the Stellen cell surfaces latest, Δ7T and 90T min/max.
-    const tooltipSpan = stellenCell.querySelector(".jobs-sparkline-cell") as HTMLElement;
-    expect(tooltipSpan).not.toBeNull();
-    expect(tooltipSpan.getAttribute("title")).toContain("Aktuell: 42");
-    expect(tooltipSpan.getAttribute("title")).toContain("Δ 7T: +3");
-    expect(tooltipSpan.getAttribute("title")).toContain("90T min/max: 30/42");
-
     // Latest count is visible in the Stellen cell.
     expect(within(stellenCell).getByText("42")).toBeInTheDocument();
+
+    // Hovering the Stellen cell surfaces a styled tooltip with latest, Δ7T
+    // and the 90T min/max band (rendered through a body portal).
+    const stellenWrapper = stellenCell.querySelector(".jobs-sparkline-cell") as HTMLElement;
+    expect(stellenWrapper).not.toBeNull();
+    fireEvent.mouseEnter(stellenWrapper);
+    const jobsTip = screen.getByRole("tooltip");
+    expect(jobsTip).toHaveTextContent("Offene Stellen");
+    expect(jobsTip).toHaveTextContent("Aktuell: 42");
+    expect(jobsTip).toHaveTextContent("Δ 7T: +3");
+    expect(jobsTip).toHaveTextContent("90 T min/max: 30 / 42");
+    fireEvent.mouseLeave(stellenWrapper);
+    expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+
+    // Hovering the Trend cell surfaces a styled period-change tooltip
+    // (start→end, absolute Δ and %). It renders through a body portal, so it
+    // only exists while hovered.
+    const trendWrapper = trendCell.querySelector(".jobs-sparkline-cell") as HTMLElement;
+    expect(trendWrapper).not.toBeNull();
+    expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+
+    fireEvent.mouseEnter(trendWrapper);
+    const tip = screen.getByRole("tooltip");
+    expect(tip).toHaveTextContent("90 Tage");
+    expect(tip).toHaveTextContent("30 → 42");
+    expect(tip).toHaveTextContent("+12 (+40,0 %)");
+
+    fireEvent.mouseLeave(trendWrapper);
+    expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
   });
 
   it("falls back to count + Δ when fewer than 2 trend points are available", () => {
@@ -198,6 +235,60 @@ describe("WatchlistTable jobs sparkline cell", () => {
     expect(stellenCell.textContent).toBe("–");
 
     expect(screen.queryByTestId("jobs-sparkline-stub")).not.toBeInTheDocument();
+  });
+});
+
+describe("WatchlistTable Kurs 12M price sparkline cell", () => {
+  function getPriceCell(container: HTMLElement) {
+    const headers = Array.from(container.querySelectorAll("thead th"));
+    const idx = headers.findIndex((th) => th.textContent === "Kurs 12M");
+    const cells = Array.from(container.querySelectorAll("tbody tr:first-child td"));
+    return cells[idx] as HTMLElement;
+  }
+
+  it("renders the price sparkline when ≥2 price points exist", () => {
+    const { container } = renderTable({
+      pricesByIsin: {
+        DE0001: [
+          { date: "2025-06-01", close: 95.2 },
+          { date: "2026-05-01", close: 110.4 },
+        ],
+      },
+    });
+    const cell = getPriceCell(container);
+    const stub = within(cell).getByTestId("price-sparkline-stub");
+    expect(stub).toBeInTheDocument();
+    expect(stub.dataset.points).toBe("2");
+  });
+
+  it("hovering reveals a 12-month price-change tooltip", () => {
+    const { container } = renderTable({
+      pricesByIsin: {
+        DE0001: [
+          { date: "2025-06-01", close: 100 },
+          { date: "2026-05-01", close: 120 },
+        ],
+      },
+    });
+    const cell = getPriceCell(container);
+    const wrapper = cell.querySelector(".jobs-sparkline-cell") as HTMLElement;
+    expect(wrapper).not.toBeNull();
+    fireEvent.mouseEnter(wrapper);
+    const tip = screen.getByRole("tooltip");
+    expect(tip).toHaveTextContent("Kurs · 12 Monate");
+    expect(tip).toHaveTextContent("100,00 → 120,00 EUR");
+    expect(tip).toHaveTextContent("+20,0 %");
+    fireEvent.mouseLeave(wrapper);
+    expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+  });
+
+  it("falls back to a dash when fewer than 2 price points are available", () => {
+    const { container } = renderTable({
+      pricesByIsin: { DE0001: [{ date: "2026-05-01", close: 100 }] },
+    });
+    const cell = getPriceCell(container);
+    expect(cell.textContent).toBe("–");
+    expect(within(cell).queryByTestId("price-sparkline-stub")).not.toBeInTheDocument();
   });
 });
 
@@ -268,8 +359,8 @@ describe("WatchlistTable Stellen cell arrow behaviour", () => {
     expect(arrow!.style.marginLeft).toBe("0.25em");
   });
 
-  // Requirements: 3.7 — tooltip title contains "Aktuell:", "Δ 7T:", "90T min/max:" substrings
-  it("tooltip — title attribute on .jobs-sparkline-cell contains required substrings", () => {
+  // Requirements: 3.7 — hover tooltip surfaces "Aktuell:", "Δ 7T:", "min/max" content
+  it("tooltip — hovering the Stellen cell reveals required tooltip content", () => {
     const { container } = renderTable({
       jobsByIsin: { DE0001: { latest: 20, delta_7d: 4 } },
       trendsByIsin: {
@@ -280,12 +371,13 @@ describe("WatchlistTable Stellen cell arrow behaviour", () => {
       },
     });
     const { stellenCell } = getTrendAndStellenCells(container);
-    const tooltipSpan = stellenCell.querySelector(".jobs-sparkline-cell") as HTMLElement | null;
-    expect(tooltipSpan).not.toBeNull();
-    const title = tooltipSpan!.getAttribute("title") ?? "";
-    expect(title).toContain("Aktuell:");
-    expect(title).toContain("Δ 7T:");
-    expect(title).toContain("90T min/max:");
+    const wrapper = stellenCell.querySelector(".jobs-sparkline-cell") as HTMLElement | null;
+    expect(wrapper).not.toBeNull();
+    fireEvent.mouseEnter(wrapper!);
+    const tip = screen.getByRole("tooltip");
+    expect(tip).toHaveTextContent("Aktuell:");
+    expect(tip).toHaveTextContent("Δ 7T:");
+    expect(tip).toHaveTextContent("min/max:");
   });
 
   // Requirements: 4.3, 4.4 — both Trend and Stellen <td> carry the num-cell class

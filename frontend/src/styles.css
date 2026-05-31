@@ -18,5 +18,7 @@
 @import "./styles/runs.css";
 @import "./styles/jobs.css";
 @import "./styles/ai.css";
+@import "./styles/batch.css";
+@import "./styles/stock-select.css";
 @import "./styles/settings.css";
 @import "./styles/watchlist-mobile.css";
