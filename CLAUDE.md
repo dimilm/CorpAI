@@ -5,6 +5,26 @@ Guidance for Claude Code when working in this repository.
 > This is the single source of truth for working in this repo. Setup details and
 > rationale live in [`README.md`](README.md) and the ADRs under [`docs/adr/`](docs/adr/).
 
+## gstack
+
+[gstack](https://github.com/garrytan/gstack) is installed globally at `~/.claude/skills/gstack`.
+
+- **Install (each teammate, once — requires the [Bun](https://bun.sh) runtime):**
+  ```bash
+  git clone --depth 1 https://github.com/garrytan/gstack.git ~/.claude/skills/gstack
+  cd ~/.claude/skills/gstack && ./setup --team
+  ```
+- **Web browsing:** always use the gstack `/browse` skill for any web browsing.
+  **Never use the `mcp__claude-in-chrome__*` tools.**
+- **Available skills:** `/office-hours`, `/plan-ceo-review`, `/plan-eng-review`,
+  `/plan-design-review`, `/design-consultation`, `/design-shotgun`, `/design-html`,
+  `/review`, `/ship`, `/land-and-deploy`, `/canary`, `/benchmark`, `/browse`,
+  `/connect-chrome`, `/qa`, `/qa-only`, `/design-review`, `/setup-browser-cookies`,
+  `/setup-deploy`, `/setup-gbrain`, `/retro`, `/investigate`, `/document-release`,
+  `/document-generate`, `/codex`, `/cso`, `/autoplan`, `/plan-devex-review`,
+  `/devex-review`, `/careful`, `/freeze`, `/guard`, `/unfreeze`, `/gstack-upgrade`,
+  `/learn`.
+
 ## Project
 
 **CompanyTracker** — a single-process FastAPI + React app that tracks a watchlist of
