@@ -7,6 +7,12 @@ credentials in ``~/.claude``, so no API key is required. This only works on a
 machine where Claude Code is installed and logged in (local/dev use) — it is
 intentionally not wired up for the Docker deployment.
 
+The CLI is spawned with the blocking ``subprocess.run`` offloaded to a worker
+thread via ``asyncio.to_thread`` rather than ``asyncio.create_subprocess_exec``.
+The async-subprocess machinery is unavailable on Windows' ``SelectorEventLoop``
+(which ``uvicorn --reload`` selects) and raises ``NotImplementedError`` there;
+the blocking call works under any event loop on any platform.
+
 Note on structured output: with ``--json-schema`` the CLI enforces the schema
 through an internal ``StructuredOutput`` step and returns the parsed object under
 the envelope's ``structured_output`` key. The free-text ``result`` field is
@@ -19,6 +25,7 @@ import asyncio
 import json
 import os
 import shutil
+import subprocess
 from typing import Any
 
 from app.providers.ai.base import AIProvider, CompletionResult
@@ -66,31 +73,39 @@ class ClaudeCodeProvider(AIProvider):
             if k not in _STRIP_ENV_KEYS and not k.startswith(_STRIP_ENV_PREFIXES)
         }
 
-    async def _run_cli(self, args: list[str], stdin_text: str) -> dict[str, Any]:
-        exe = self._resolve_cli()
-        proc = await asyncio.create_subprocess_exec(
-            exe,
-            *args,
-            stdin=asyncio.subprocess.PIPE,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-            env=self._clean_env(),
-        )
+    def _spawn(
+        self, exe: str, args: list[str], stdin_text: str
+    ) -> tuple[int, bytes, bytes]:
+        """Blocking CLI call — runs in a worker thread (see `_run_cli`).
+
+        Uses the synchronous `subprocess.run` instead of asyncio's subprocess
+        API so it works under Windows' `SelectorEventLoop`, where
+        `asyncio.create_subprocess_exec` raises `NotImplementedError`.
+        """
         try:
-            stdout, stderr = await asyncio.wait_for(
-                proc.communicate(stdin_text.encode("utf-8")),
+            completed = subprocess.run(
+                [exe, *args],
+                input=stdin_text.encode("utf-8"),
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                env=self._clean_env(),
                 timeout=_TIMEOUT_SECONDS,
             )
-        except asyncio.TimeoutError as exc:
-            proc.kill()
-            await proc.wait()
+        except subprocess.TimeoutExpired as exc:
             raise ValueError(
                 f"Claude-Code-CLI hat nach {_TIMEOUT_SECONDS}s nicht geantwortet."
             ) from exc
+        return completed.returncode, completed.stdout, completed.stderr
 
-        if proc.returncode != 0:
+    async def _run_cli(self, args: list[str], stdin_text: str) -> dict[str, Any]:
+        exe = self._resolve_cli()
+        returncode, stdout, stderr = await asyncio.to_thread(
+            self._spawn, exe, args, stdin_text
+        )
+
+        if returncode != 0:
             detail = stderr.decode("utf-8", "replace").strip() or "unbekannter Fehler"
-            raise ValueError(f"Claude-Code-CLI-Fehler (Exit {proc.returncode}): {detail}")
+            raise ValueError(f"Claude-Code-CLI-Fehler (Exit {returncode}): {detail}")
 
         try:
             envelope = json.loads(stdout.decode("utf-8", "replace"))

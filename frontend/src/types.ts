@@ -129,3 +129,11 @@ export interface BatchRunResult {
   skipped: BatchQueuedItem[];
   run_id?: number | null;
 }
+
+export interface AIImportReport {
+  total_rows: number;
+  inserted: number;
+  skipped_existing: number;
+  unmapped_rows: { run: Record<string, unknown>; reason: string }[];
+  malformed_rows: { run: Record<string, unknown>; error: string }[];
+}

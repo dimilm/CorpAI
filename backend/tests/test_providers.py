@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import subprocess
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -251,13 +252,18 @@ def test_ollama_ping_unreachable_endpoint_raises() -> None:
 def _mock_claude_proc(
     envelope: dict[str, Any] | str, returncode: int = 0, stderr: str = ""
 ) -> Any:
+    """Build a fake `subprocess.CompletedProcess` for the CLI call.
+
+    The provider runs the CLI via the blocking `subprocess.run` (offloaded to a
+    thread), not asyncio's subprocess API — so tests mock `subprocess.run` and
+    receive a completed-process stand-in with bytes stdout/stderr.
+    """
     stdout = (envelope if isinstance(envelope, str) else json.dumps(envelope)).encode("utf-8")
-    proc = MagicMock()
-    proc.communicate = AsyncMock(return_value=(stdout, stderr.encode("utf-8")))
-    proc.returncode = returncode
-    proc.kill = MagicMock()
-    proc.wait = AsyncMock(return_value=None)
-    return proc
+    completed = MagicMock()
+    completed.returncode = returncode
+    completed.stdout = stdout
+    completed.stderr = stderr.encode("utf-8")
+    return completed
 
 
 def test_claudecode_complete_reads_structured_output() -> None:
@@ -268,14 +274,14 @@ def test_claudecode_complete_reads_structured_output() -> None:
         "structured_output": {"score": 9},
         "usage": {"input_tokens": 42, "output_tokens": 7},
     }
-    proc = _mock_claude_proc(envelope)
+    completed = _mock_claude_proc(envelope)
     provider = ClaudeCodeProvider(model="sonnet")
 
     with patch(
         "app.providers.ai.claudecode_provider.shutil.which", return_value="/usr/bin/claude"
     ), patch(
-        "app.providers.ai.claudecode_provider.asyncio.create_subprocess_exec",
-        AsyncMock(return_value=proc),
+        "app.providers.ai.claudecode_provider.subprocess.run",
+        return_value=completed,
     ) as spawn:
         result = asyncio.run(
             provider.complete("system", "user", json_schema={"type": "object"})
@@ -286,20 +292,21 @@ def test_claudecode_complete_reads_structured_output() -> None:
     assert result.output_tokens == 7
     assert result.estimated_cost == 0.0
     # Schema mode passes --json-schema; the user prompt is fed via stdin.
-    assert "--json-schema" in spawn.call_args.args
-    assert proc.communicate.call_args.args[0] == b"user"
+    cmd = spawn.call_args.args[0]
+    assert "--json-schema" in cmd
+    assert spawn.call_args.kwargs["input"] == b"user"
 
 
 def test_claudecode_complete_without_schema_wraps_result_text() -> None:
     envelope = {"is_error": False, "result": "plain answer", "usage": {}}
-    proc = _mock_claude_proc(envelope)
+    completed = _mock_claude_proc(envelope)
     provider = ClaudeCodeProvider(model="sonnet")
 
     with patch(
         "app.providers.ai.claudecode_provider.shutil.which", return_value="/usr/bin/claude"
     ), patch(
-        "app.providers.ai.claudecode_provider.asyncio.create_subprocess_exec",
-        AsyncMock(return_value=proc),
+        "app.providers.ai.claudecode_provider.subprocess.run",
+        return_value=completed,
     ):
         result = asyncio.run(provider.complete("system", "user"))
 
@@ -308,16 +315,31 @@ def test_claudecode_complete_without_schema_wraps_result_text() -> None:
 
 
 def test_claudecode_complete_nonzero_exit_raises() -> None:
-    proc = _mock_claude_proc("", returncode=1, stderr="not logged in")
+    completed = _mock_claude_proc("", returncode=1, stderr="not logged in")
     provider = ClaudeCodeProvider(model="sonnet")
 
     with patch(
         "app.providers.ai.claudecode_provider.shutil.which", return_value="/usr/bin/claude"
     ), patch(
-        "app.providers.ai.claudecode_provider.asyncio.create_subprocess_exec",
-        AsyncMock(return_value=proc),
+        "app.providers.ai.claudecode_provider.subprocess.run",
+        return_value=completed,
     ):
         with pytest.raises(ValueError, match="not logged in"):
+            asyncio.run(
+                provider.complete("system", "user", json_schema={"type": "object"})
+            )
+
+
+def test_claudecode_complete_timeout_raises() -> None:
+    provider = ClaudeCodeProvider(model="sonnet")
+
+    with patch(
+        "app.providers.ai.claudecode_provider.shutil.which", return_value="/usr/bin/claude"
+    ), patch(
+        "app.providers.ai.claudecode_provider.subprocess.run",
+        side_effect=subprocess.TimeoutExpired(cmd="claude", timeout=600),
+    ):
+        with pytest.raises(ValueError, match="nicht geantwortet"):
             asyncio.run(
                 provider.complete("system", "user", json_schema={"type": "object"})
             )
@@ -331,7 +353,7 @@ def test_claudecode_missing_cli_raises() -> None:
 
 
 def test_claudecode_complete_enables_web_tools_by_default() -> None:
-    proc = _mock_claude_proc(
+    completed = _mock_claude_proc(
         {"is_error": False, "structured_output": {"score": 1}, "usage": {}}
     )
     provider = ClaudeCodeProvider(model="sonnet")  # enable_web defaults to True
@@ -339,20 +361,20 @@ def test_claudecode_complete_enables_web_tools_by_default() -> None:
     with patch(
         "app.providers.ai.claudecode_provider.shutil.which", return_value="/usr/bin/claude"
     ), patch(
-        "app.providers.ai.claudecode_provider.asyncio.create_subprocess_exec",
-        AsyncMock(return_value=proc),
+        "app.providers.ai.claudecode_provider.subprocess.run",
+        return_value=completed,
     ) as spawn:
         asyncio.run(provider.complete("system", "user", json_schema={"type": "object"}))
 
-    args = spawn.call_args.args
-    assert "--tools" in args and "--allowed-tools" in args
-    assert "WebSearch" in args and "WebFetch" in args
+    cmd = spawn.call_args.args[0]
+    assert "--tools" in cmd and "--allowed-tools" in cmd
+    assert "WebSearch" in cmd and "WebFetch" in cmd
     # Read-only research only — never file/Bash tools.
-    assert "Bash" not in args and "Edit" not in args
+    assert "Bash" not in cmd and "Edit" not in cmd
 
 
 def test_claudecode_complete_web_tools_can_be_disabled() -> None:
-    proc = _mock_claude_proc(
+    completed = _mock_claude_proc(
         {"is_error": False, "structured_output": {"score": 1}, "usage": {}}
     )
     provider = ClaudeCodeProvider(model="sonnet", enable_web=False)
@@ -360,9 +382,9 @@ def test_claudecode_complete_web_tools_can_be_disabled() -> None:
     with patch(
         "app.providers.ai.claudecode_provider.shutil.which", return_value="/usr/bin/claude"
     ), patch(
-        "app.providers.ai.claudecode_provider.asyncio.create_subprocess_exec",
-        AsyncMock(return_value=proc),
+        "app.providers.ai.claudecode_provider.subprocess.run",
+        return_value=completed,
     ) as spawn:
         asyncio.run(provider.complete("system", "user", json_schema={"type": "object"}))
 
-    assert "--tools" not in spawn.call_args.args
+    assert "--tools" not in spawn.call_args.args[0]

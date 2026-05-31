@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { api } from "../api/client";
@@ -9,12 +9,14 @@ import { StockSelectList, StockSelectColumn } from "../components/StockSelectLis
 import {
   useAgents,
   useCancelAIBatch,
+  useImportAIRuns,
   useRunAgentsBatch,
   useRunAIStatuses,
 } from "../hooks/useAIAgents";
 import { useDocumentTitle } from "../hooks/useDocumentTitle";
 import { STOCKS_LIST_KEY } from "../hooks/useStockMutations";
 import { extractApiError } from "../lib/apiError";
+import { downloadBlob } from "../lib/download";
 import { useCurrentRun, useInvalidateOnRunFinish } from "../lib/runProgress";
 import { toast } from "../lib/toast";
 import type { Stock } from "../types";
@@ -78,6 +80,47 @@ export function BatchAnalysisPage() {
 
   const batch = useRunAgentsBatch();
 
+  // Export/import of the AI-run history: run Opus analyses locally, then carry
+  // the results to other deployments (and keep a backup). Mirrors the
+  // job-history export/import in Settings.
+  const importRuns = useImportAIRuns();
+  const importFileRef = useRef<HTMLInputElement>(null);
+  const [exporting, setExporting] = useState(false);
+
+  async function exportAnalyses() {
+    setExporting(true);
+    try {
+      await downloadBlob("/ai/runs/export", "ai-analysis.json", "application/json");
+      toast.success("KI-Analysen exportiert.");
+    } catch (error) {
+      toast.error(extractApiError(error, "Export fehlgeschlagen."));
+    } finally {
+      setExporting(false);
+    }
+  }
+
+  async function importAnalyses(file: File) {
+    try {
+      const report = await importRuns.mutateAsync(file);
+      const parts = [
+        `${report.inserted} importiert`,
+        `${report.skipped_existing} übersprungen`,
+      ];
+      if (report.unmapped_rows.length > 0) {
+        parts.push(`${report.unmapped_rows.length} nicht zugeordnet`);
+      }
+      if (report.malformed_rows.length > 0) {
+        parts.push(`${report.malformed_rows.length} fehlerhaft`);
+      }
+      const clean = report.unmapped_rows.length === 0 && report.malformed_rows.length === 0;
+      const text = `Import: ${parts.join(", ")}.`;
+      if (clean) toast.success(text);
+      else toast.error(text);
+    } catch (error) {
+      toast.error(extractApiError(error, "Import fehlgeschlagen."));
+    }
+  }
+
   function toggleAgent(id: string) {
     setAgentOverride((current) => {
       const next = new Set(current ?? defaultAgents);
@@ -126,6 +169,37 @@ export function BatchAnalysisPage() {
           einem Durchlauf zu starten. Die Läufe werden nacheinander im
           Hintergrund ausgeführt.
         </p>
+        <div className="batch-header-actions">
+          <button
+            type="button"
+            className="btn-secondary"
+            onClick={() => void exportAnalyses()}
+            disabled={exporting}
+          >
+            {exporting ? "Exportiere …" : "Analysen exportieren"}
+          </button>
+          <button
+            type="button"
+            className="btn-secondary"
+            onClick={() => importFileRef.current?.click()}
+            disabled={importRuns.isPending}
+          >
+            {importRuns.isPending ? "Importiere …" : "Analysen importieren"}
+          </button>
+          <input
+            ref={importFileRef}
+            type="file"
+            accept=".json,application/json"
+            style={{ display: "none" }}
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) {
+                void importAnalyses(file);
+                e.target.value = "";
+              }
+            }}
+          />
+        </div>
       </header>
 
       {aiRun && (

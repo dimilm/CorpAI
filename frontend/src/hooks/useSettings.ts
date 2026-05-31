@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../api/client";
 import { ColorThresholds, defaultThresholds } from "../lib/colorRules";
+import { downloadBlob } from "../lib/download";
 import { extractApiError } from "../lib/apiError";
 
 export interface SettingsState {
@@ -131,19 +132,6 @@ export function useSettings() {
     } finally {
       setTesting(false);
     }
-  }
-
-  async function downloadBlob(url: string, filename: string, mediaType: string) {
-    const res = await api.get(url, { responseType: "blob" });
-    const blob = res.data instanceof Blob ? res.data : new Blob([res.data], { type: mediaType });
-    const objectUrl = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = objectUrl;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(objectUrl);
   }
 
   async function downloadSeed() {

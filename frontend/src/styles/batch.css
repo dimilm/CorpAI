@@ -5,6 +5,12 @@
 .batch-page-header h2 {
   margin: 0 0 0.35rem;
 }
+.batch-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
 
 .batch-action-bar {
   position: sticky;

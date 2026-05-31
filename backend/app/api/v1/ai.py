@@ -17,10 +17,11 @@ The router exposes the agent registry to the frontend:
 """
 from __future__ import annotations
 
+import json
 import time
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
-from fastapi.responses import PlainTextResponse
+from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, Query, UploadFile
+from fastapi.responses import PlainTextResponse, Response
 from sqlalchemy.orm import Session
 from starlette.status import HTTP_202_ACCEPTED, HTTP_409_CONFLICT
 
@@ -40,6 +41,8 @@ from app.schemas.ai import (
     BatchRunRequest,
     BatchRunResult,
 )
+from app.services import ai_run_io
+from app.services.ai_run_io import AIImportReport
 from app.services.ai_run_service import (
     execute_batch_in_background,
     execute_run_in_background,
@@ -237,6 +240,46 @@ def cancel_agents_batch(
         return {"cancelled": False, "run_id": None}
     request_cancel_for_run(run_log.id)
     return {"cancelled": True, "run_id": run_log.id}
+
+
+@router.get("/runs/export")
+def export_ai_runs(
+    _: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> Response:
+    """Download every finished AI run as a single JSON file.
+
+    Mounted before ``/runs/{run_id}`` so FastAPI does not try to parse the
+    literal string ``export`` as an int. The file round-trips through
+    ``POST /ai/runs/import`` on another deployment (transfer) or the same one
+    (backup/restore).
+    """
+    payload = json.dumps(ai_run_io.build_export(db), ensure_ascii=False, indent=2)
+    return Response(
+        content=payload,
+        media_type="application/json",
+        headers={"Content-Disposition": 'attachment; filename="ai-analysis.json"'},
+    )
+
+
+@router.post(
+    "/runs/import",
+    response_model=AIImportReport,
+    dependencies=[Depends(csrf_guard)],
+)
+async def import_ai_runs(
+    file: UploadFile = File(...),
+    _: dict = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> AIImportReport:
+    """Upload a `corpai-ai-analysis` export and insert new runs (skip existing).
+
+    Runs whose ISIN is not in the watchlist are reported in ``unmapped_rows``;
+    re-importing the same file is idempotent (duplicates land in
+    ``skipped_existing``).
+    """
+    content = await file.read()
+    return ai_run_io.import_runs(db, content)
 
 
 @router.get(
