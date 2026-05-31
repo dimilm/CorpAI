@@ -11,3 +11,4 @@ data/
 .env
 docker/.env
 backend/.env
+.gstack/
