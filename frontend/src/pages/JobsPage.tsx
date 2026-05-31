@@ -4,6 +4,7 @@ import { Link, useSearchParams } from "react-router-dom";
 
 import { FilterPills, FilterPillOption } from "../components/FilterPills";
 import { JobsMobileList } from "../components/jobs/JobsMobileList";
+import { RunSummaryItem } from "../components/RunSummaryItem";
 import { SearchField } from "../components/SearchField";
 import { Spinner } from "../components/Spinner";
 import { StatusBadge } from "../components/StatusBadge";
@@ -25,10 +26,10 @@ import {
   formatDateOnly,
   formatDateTime,
   formatDuration,
-  parseBackendDate,
 } from "../lib/format";
 import {
   liveRunSeconds,
+  liveSeconds,
   phaseLabel,
   runStatusLabel,
   useCurrentRun,
@@ -49,41 +50,6 @@ function formatDelta(delta: number | null | undefined): string {
   if (delta == null) return "–";
   if (delta === 0) return "0";
   return delta > 0 ? `+${delta}` : `${delta}`;
-}
-
-// Live duration of a single source row in seconds. Mirrors `liveStockSeconds`
-// but works on the lighter `RunJobStatus` shape (only `started_at`/`finished_at`).
-// Backend ships naive UTC strings; `parseBackendDate` normalises them so the
-// counter does not skew by the host's UTC offset.
-function liveSourceSeconds(
-  startedAt: string | null,
-  finishedAt: string | null
-): number | null {
-  if (!startedAt) return null;
-  const start = parseBackendDate(startedAt).getTime();
-  const end = finishedAt ? parseBackendDate(finishedAt).getTime() : Date.now();
-  if (Number.isNaN(start) || Number.isNaN(end)) return null;
-  return Math.max(0, Math.round((end - start) / 1000));
-}
-
-function RunSummaryItem({
-  label,
-  value,
-  sub,
-  accent,
-}: {
-  label: string;
-  value: string;
-  sub?: string;
-  accent?: string;
-}) {
-  return (
-    <div className={`run-summary-item${accent ? ` run-summary-${accent}` : ""}`}>
-      <div className="run-summary-label">{label}</div>
-      <div className="run-summary-value">{value}</div>
-      {sub && <div className="run-summary-sub">{sub}</div>}
-    </div>
-  );
 }
 
 export function JobsPage() {
@@ -168,7 +134,7 @@ export function JobsPage() {
   }, [filtered, currentRun, liveFilter, statusByJobId]);
 
   // Re-render every second while a run is active so the live duration counters
-  // (`liveSourceSeconds` for the row, `liveRunSeconds` for the summary) keep
+  // (`liveSeconds` for the row, `liveRunSeconds` for the summary) keep
   // ticking in between API polls.
   const [, setTick] = useState(0);
   useEffect(() => {
@@ -415,7 +381,7 @@ export function JobsPage() {
         {visibleSources.length === 0 ? (
           <p className="run-empty">Keine Quellen gefunden.</p>
         ) : (
-          <table className="jobs-table">
+          <table className="jobs-table" aria-label="Offene Stellen je Unternehmen">
             <thead>
               <tr>
                 <th>Name</th>
@@ -506,10 +472,7 @@ export function JobsPage() {
                           {status?.started_at && (
                             <span className="run-duration">
                               {formatDuration(
-                                liveSourceSeconds(
-                                  status.started_at,
-                                  status.finished_at
-                                ),
+                                liveSeconds(status.started_at, status.finished_at),
                                 { dashOnZero: false }
                               )}
                             </span>

@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 
 import { FilterPills, FilterPillOption } from "../FilterPills";
+import { RunSummaryItem } from "../RunSummaryItem";
 import { StatusBadge } from "../StatusBadge";
 import { formatDuration, parseBackendDate } from "../../lib/format";
 import {
@@ -19,26 +20,6 @@ interface Props {
   agentLabel: (agentId: string) => string;
   onCancel: () => void;
   cancelPending: boolean;
-}
-
-function RunSummaryItem({
-  label,
-  value,
-  sub,
-  accent,
-}: {
-  label: string;
-  value: string;
-  sub?: string;
-  accent?: string;
-}) {
-  return (
-    <div className={`run-summary-item${accent ? ` run-summary-${accent}` : ""}`}>
-      <div className="run-summary-label">{label}</div>
-      <div className="run-summary-value">{value}</div>
-      {sub && <div className="run-summary-sub">{sub}</div>}
-    </div>
-  );
 }
 
 // Live timer for in-flight rows; finished rows fall back to the recorded

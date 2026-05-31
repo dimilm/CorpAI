@@ -9,8 +9,8 @@ import { extractApiError } from "../lib/apiError";
 export function LoginPage() {
   useDocumentTitle("Login");
   const { setUser } = useAuth();
-  const [username, setUsername] = useState("admin");
-  const [password, setPassword] = useState("changeme");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const nav = useNavigate();

@@ -42,6 +42,9 @@ export function AppLayout({ children }: Props) {
 
   return (
     <>
+      <a className="skip-link" href="#main-content">
+        Zum Inhalt springen
+      </a>
       {user && isMobile && (
         <>
           <MobileTopBar
@@ -98,7 +101,9 @@ export function AppLayout({ children }: Props) {
           <LogoutButton />
         </nav>
       )}
-      {children}
+      <main id="main-content" tabIndex={-1}>
+        {children}
+      </main>
     </>
   );
 }

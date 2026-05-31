@@ -49,3 +49,5 @@ Index(
     AIRun.created_at.desc(),
 )
 Index("ix_ai_runs_batch_run_id", AIRun.batch_run_id)
+# Startup recovery (recover_dangling_ai_runs) filters by status == "running".
+Index("ix_ai_runs_status", AIRun.status)

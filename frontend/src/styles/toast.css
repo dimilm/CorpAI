@@ -68,11 +68,11 @@
 }
 
 .toast-success {
-  border-left-color: #16a34a;
+  border-left-color: var(--success-solid);
 }
 
 .toast-warning {
-  border-left-color: #d97706;
+  border-left-color: var(--warning-solid);
 }
 
 .toast-error {

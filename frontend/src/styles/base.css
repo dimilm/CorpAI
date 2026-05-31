@@ -12,6 +12,59 @@ body {
   color: var(--text-primary);
 }
 
+/* Baseline keyboard-focus indicator for any interactive element that does not
+ * define its own. Components with a custom focus ring (buttons, inputs) set
+ * `outline: none` + box-shadow and override this. */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Visually-hidden but readable by screen readers (table captions, labels). */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Directional sentiment glyph (▲/▼) preceding signed values. */
+.trend-arrow {
+  font-size: 0.8em;
+  line-height: 1;
+}
+
+/* Skip-to-content link — visually hidden until focused (keyboard users). */
+.skip-link {
+  position: absolute;
+  left: 8px;
+  top: -48px;
+  z-index: 200;
+  padding: 8px 14px;
+  background: var(--accent);
+  color: var(--c-white);
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: top 0.15s ease;
+}
+
+.skip-link:focus-visible {
+  top: 8px;
+  outline: 2px solid var(--c-white);
+  outline-offset: 2px;
+}
+
+#main-content:focus {
+  outline: none;
+}
+
 nav {
   display: flex;
   gap: 4px;
@@ -199,6 +252,52 @@ nav .nav-logout:hover {
   }
 }
 
+/* ------- Skeleton loaders ------- */
+
+.skeleton {
+  display: block;
+  background: linear-gradient(
+    90deg,
+    var(--bg-subtle) 25%,
+    var(--bg-surface-2) 37%,
+    var(--bg-subtle) 63%
+  );
+  background-size: 400% 100%;
+  border-radius: var(--radius-sm);
+  animation: skeleton-shimmer 1.4s ease infinite;
+}
+
+@keyframes skeleton-shimmer {
+  from { background-position: 100% 50%; }
+  to { background-position: 0 50%; }
+}
+
+.skeleton-table {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 8px 0;
+}
+
+.skeleton-table-row {
+  display: grid;
+  grid-template-columns: repeat(var(--skeleton-cols, 6), 1fr);
+  gap: 12px;
+  align-items: center;
+}
+
+.skeleton-table-head {
+  opacity: 0.7;
+}
+
+/* Honour reduced-motion: hold a static tint instead of shimmering. */
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+    background: var(--bg-subtle);
+  }
+}
+
 /* ------- Breadcrumbs ------- */
 
 .breadcrumb-link {
@@ -281,9 +380,9 @@ nav .nav-logout:hover {
   margin: 32px auto;
   background: var(--danger-bg);
   border: 1px solid var(--danger-border);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   padding: 24px;
-  color: #7f1d1d;
+  color: var(--danger-fg);
 }
 
 .error-boundary-page h2 {

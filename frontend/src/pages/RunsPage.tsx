@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 import { api } from "../api/client";
 import { FilterPills, FilterPillOption } from "../components/FilterPills";
 import { Modal } from "../components/Modal";
+import { RunSummaryItem } from "../components/RunSummaryItem";
 import { Spinner } from "../components/Spinner";
 import { StatusBadge } from "../components/StatusBadge";
 import { StockSelectList } from "../components/StockSelectList";
@@ -53,26 +54,6 @@ function StepCell({ step, label }: { step: RunStep; label: string }) {
 
 function formatStockDuration(s: RunStockStatus): string {
   return formatDuration(liveStockSeconds(s));
-}
-
-function RunSummaryItem({
-  label,
-  value,
-  sub,
-  accent,
-}: {
-  label: string;
-  value: string;
-  sub?: string;
-  accent?: string;
-}) {
-  return (
-    <div className={`run-summary-item${accent ? ` run-summary-${accent}` : ""}`}>
-      <div className="run-summary-label">{label}</div>
-      <div className="run-summary-value">{value}</div>
-      {sub && <div className="run-summary-sub">{sub}</div>}
-    </div>
-  );
 }
 
 export function RunsPage() {
@@ -495,7 +476,7 @@ export function RunsPage() {
           {historyQuery.isLoading ? (
             <Spinner label="Lade Verlauf…" />
           ) : (
-            <table className="run-table">
+            <table className="run-table" aria-label="Verlauf der bisherigen Läufe">
               <thead>
                 <tr>
                   <th>Run</th>

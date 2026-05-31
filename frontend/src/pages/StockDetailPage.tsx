@@ -54,6 +54,7 @@ import {
   formatNumber,
   formatPercent,
   formatTimeShort,
+  trendArrow,
 } from "../lib/format";
 import {
   liveRunSeconds,
@@ -161,6 +162,23 @@ function HistoryChart({ isin, stock }: HistoryChartProps) {
     return [Math.max(0, min - pad), max + pad];
   }, [chartData, numericRefLines]);
 
+  // Text summary so the price chart is not opaque to screen readers — the
+  // recharts SVG carries no semantics. Exact values stay in the hover tooltip.
+  const chartAriaLabel = useMemo(() => {
+    if (chartData.length === 0) return "Kursverlauf: keine Daten verfügbar.";
+    const closes = chartData.map((p) => p.close);
+    const first = closes[0];
+    const last = closes[closes.length - 1];
+    const min = Math.min(...closes);
+    const max = Math.max(...closes);
+    const trend = last > first ? "steigend" : last < first ? "fallend" : "unverändert";
+    return (
+      `Kursverlauf, ${chartData.length} Datenpunkte, ${trend}. ` +
+      `Von ${formatNumber(first)} auf ${formatNumber(last)}, ` +
+      `Spanne ${formatNumber(min)} bis ${formatNumber(max)}.`
+    );
+  }, [chartData]);
+
   return (
     <div className="detail-card detail-chart-card">
       <div className="detail-chart-header">
@@ -188,7 +206,7 @@ function HistoryChart({ isin, stock }: HistoryChartProps) {
       )}
       {chartData.length > 0 && (
         <>
-          <div className="detail-chart-body">
+          <div className="detail-chart-body" role="img" aria-label={chartAriaLabel}>
             <ResponsiveContainer width="100%" height={320}>
               <LineChart data={chartData} margin={{ top: 8, right: 64, bottom: 0, left: 0 }}>
                 <CartesianGrid stroke={chartTheme.grid} vertical={false} />
@@ -607,6 +625,11 @@ export function StockDetailPage() {
           <div className="detail-price-block">
             <div className="detail-price-value">{formatCurrency(stock.current_price, stock.currency)}</div>
             <div className={`detail-price-change ${changeClass(stock.day_change_pct, defaultThresholds)}`}>
+              {trendArrow(stock.day_change_pct) && (
+                <span className="trend-arrow" aria-hidden="true">
+                  {trendArrow(stock.day_change_pct)}{" "}
+                </span>
+              )}
               {formatPercent(stock.day_change_pct)} heute
             </div>
             <div className="detail-price-meta">Stand: {formatDate(stock.last_updated)}</div>

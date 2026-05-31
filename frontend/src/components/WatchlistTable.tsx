@@ -8,7 +8,7 @@ import {
   dividendClass,
   targetClass,
 } from "../lib/colorRules";
-import { formatNumber, formatPercent } from "../lib/format";
+import { formatNumber, formatPercent, trendArrow } from "../lib/format";
 import { tagColorClass } from "../lib/tagColor";
 import { AIPillRow } from "./ai/AIPillRow";
 import { HoverTooltip } from "./HoverTooltip";
@@ -214,7 +214,7 @@ export default function WatchlistTable({
 }: Props) {
   return (
     <div className="table-scroll">
-    <table className="watchlist-table">
+    <table className="watchlist-table" aria-label="Watchlist der beobachteten Aktien">
       <thead>
         <tr>
           <SortHeader label="ISIN" keyName="isin" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
@@ -285,6 +285,11 @@ export default function WatchlistTable({
             </td>
             <td className="num-cell">
               <span className={changeClass(s.day_change_pct, thresholds)}>
+                {trendArrow(s.day_change_pct) && (
+                  <span className="trend-arrow" aria-hidden="true">
+                    {trendArrow(s.day_change_pct)}{" "}
+                  </span>
+                )}
                 {formatPercent(s.day_change_pct, 2, { withUnit: false })}
               </span>
             </td>

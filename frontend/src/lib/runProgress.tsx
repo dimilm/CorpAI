@@ -53,25 +53,31 @@ export function runStatusLabel(status: string | null | undefined): string {
   }
 }
 
-// Live duration of a run in seconds, including in-flight runs that have no
-// `duration_seconds` yet. Falls back to `Date.now()` so callers can render a
-// growing "0:42" counter as long as a `setInterval` re-renders them.
+// Elapsed seconds between two backend timestamps. When `finishedAt` is absent
+// the work is still in flight, so we measure to `Date.now()` — callers re-render
+// on an interval to animate a growing "0:42" counter. Returns null when there
+// is no start or the dates don't parse.
+export function liveSeconds(
+  startedAt: string | null | undefined,
+  finishedAt: string | null | undefined
+): number | null {
+  if (!startedAt) return null;
+  const start = parseBackendDate(startedAt).getTime();
+  const end = finishedAt ? parseBackendDate(finishedAt).getTime() : Date.now();
+  if (Number.isNaN(start) || Number.isNaN(end)) return null;
+  return Math.max(0, Math.round((end - start) / 1000));
+}
+
+// Live duration of a whole run in seconds. Prefers the persisted
+// `duration_seconds` once finished; otherwise computes it live.
 export function liveRunSeconds(run: RunSummary): number {
   if (run.duration_seconds && run.phase === "finished") return run.duration_seconds;
-  if (!run.started_at) return 0;
-  const startedMs = parseBackendDate(run.started_at).getTime();
-  if (Number.isNaN(startedMs)) return run.duration_seconds || 0;
-  const endMs = run.finished_at ? parseBackendDate(run.finished_at).getTime() : Date.now();
-  return Math.max(0, Math.round((endMs - startedMs) / 1000));
+  return liveSeconds(run.started_at, run.finished_at) ?? run.duration_seconds ?? 0;
 }
 
 // Same idea but for an individual stock entry inside a run.
 export function liveStockSeconds(s: RunStockStatus): number | null {
-  if (!s.started_at) return null;
-  const start = parseBackendDate(s.started_at).getTime();
-  const end = s.finished_at ? parseBackendDate(s.finished_at).getTime() : Date.now();
-  if (Number.isNaN(start) || Number.isNaN(end)) return null;
-  return Math.max(0, Math.round((end - start) / 1000));
+  return liveSeconds(s.started_at, s.finished_at);
 }
 
 export interface CurrentRunResult {

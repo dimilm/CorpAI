@@ -3,12 +3,12 @@
 
 .isin-pill {
   display: inline-block;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-family: var(--font-mono);
   font-size: 12px;
-  background: #eef2ff;
-  color: #3730a3;
+  background: var(--isin-pill-bg);
+  color: var(--isin-pill-fg);
   padding: 3px 8px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   letter-spacing: 0.04em;
 }
 
@@ -44,14 +44,14 @@
   align-items: center;
 }
 
-.tag-c0 { background: #dbeafe; color: #1e3a8a; }
-.tag-c1 { background: #dcfce7; color: #14532d; }
-.tag-c2 { background: #fef3c7; color: #78350f; }
-.tag-c3 { background: #fee2e2; color: #7f1d1d; }
-.tag-c4 { background: #ede9fe; color: #4c1d95; }
-.tag-c5 { background: #cffafe; color: #155e75; }
-.tag-c6 { background: #fce7f3; color: #831843; }
-.tag-c7 { background: #fef9c3; color: #713f12; }
+.tag-c0 { background: var(--tag-c0-bg); color: var(--tag-c0-fg); }
+.tag-c1 { background: var(--tag-c1-bg); color: var(--tag-c1-fg); }
+.tag-c2 { background: var(--tag-c2-bg); color: var(--tag-c2-fg); }
+.tag-c3 { background: var(--tag-c3-bg); color: var(--tag-c3-fg); }
+.tag-c4 { background: var(--tag-c4-bg); color: var(--tag-c4-fg); }
+.tag-c5 { background: var(--tag-c5-bg); color: var(--tag-c5-fg); }
+.tag-c6 { background: var(--tag-c6-bg); color: var(--tag-c6-fg); }
+.tag-c7 { background: var(--tag-c7-bg); color: var(--tag-c7-fg); }
 
 .tag-input-wrap {
   display: flex;
@@ -91,7 +91,7 @@
 
 .tag-pill-remove:hover {
   opacity: 1;
-  background: rgba(15, 23, 42, 0.08);
+  background: var(--overlay-soft);
 }
 
 .tag-input-field {

@@ -6,7 +6,7 @@ import { api } from "../api/client";
 import { EmptyState } from "../components/EmptyState";
 import { Modal } from "../components/Modal";
 import { PlusIcon, SearchIcon } from "../components/icons";
-import { Spinner } from "../components/Spinner";
+import { TableSkeleton } from "../components/Skeleton";
 import WatchlistTable from "../components/WatchlistTable";
 import { WatchlistMobileList } from "../components/watchlist/WatchlistMobileList";
 import { useStockPriceTrends } from "../hooks/useStockPriceTrends";
@@ -294,7 +294,7 @@ export function WatchlistPage() {
       />
 
       {!initialLoaded || (listLoading && stocks.length === 0) ? (
-        <Spinner label="Lade Watchlist..." />
+        <TableSkeleton rows={8} columns={15} label="Lade Watchlist…" />
       ) : filtered.length === 0 ? (
         activeFilters.length > 0 ? (
           <EmptyState

@@ -10,6 +10,7 @@ import {
   formatCurrency,
   formatDateTime,
   formatPercent,
+  trendArrow,
 } from "../lib/format";
 import { phaseLabel, runStatusLabel } from "../lib/runProgress";
 import { Stock } from "../types";
@@ -78,7 +79,14 @@ function MoverRow({ stock, scaleMax, variant }: MoverRowProps) {
       <div className="mover-bar">
         <div className={`mover-bar-fill mover-bar-${variant}`} style={{ width: `${widthPct}%` }} />
       </div>
-      <span className={`mover-pct mover-pct-${variant}`}>{formatPercent(change)}</span>
+      <span className={`mover-pct mover-pct-${variant}`}>
+        {trendArrow(change) && (
+          <span className="trend-arrow" aria-hidden="true">
+            {trendArrow(change)}{" "}
+          </span>
+        )}
+        {formatPercent(change)}
+      </span>
     </li>
   );
 }

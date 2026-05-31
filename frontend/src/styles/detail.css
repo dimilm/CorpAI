@@ -160,23 +160,23 @@
   font-weight: 600;
   letter-spacing: 0.02em;
   text-transform: uppercase;
-  background: #e5e7eb;
-  color: #4b5563;
+  background: var(--neutral-bg);
+  color: var(--neutral-fg);
 }
 
 .detail-rec-buy {
-  background: #dcfce7;
-  color: #047857;
+  background: var(--success-bg);
+  color: var(--success-fg);
 }
 
 .detail-rec-risk_buy {
-  background: #f3e8ff;
-  color: #7c3aed;
+  background: var(--purple-bg);
+  color: var(--purple-fg);
 }
 
 .detail-rec-none {
-  background: #e5e7eb;
-  color: #4b5563;
+  background: var(--neutral-bg);
+  color: var(--neutral-fg);
 }
 
 .detail-score-row {
@@ -242,11 +242,11 @@
 .detail-card {
   background: var(--bg-surface);
   border: 1px solid var(--border-default);
-  border-radius: 12px;
-  padding: 18px 20px;
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-3);
   box-shadow: var(--shadow-sm);
 }
 
@@ -378,34 +378,34 @@
 
 .detail-chart-source {
   font-size: 11px;
-  color: #9ca3af;
+  color: var(--text-muted);
 }
 
 /* KPI tiles */
 .run-summary-item.kpi-highlight {
-  background: #ecfeff;
-  border-color: #a5f3fc;
-  color: #155e75;
+  background: var(--cyan-bg);
+  border-color: var(--cyan-border);
+  color: var(--cyan-fg);
 }
 
 /* Traffic-light variants for ratio KPIs (e.g. Eigenkapitalquote).
  * Same tints as the `pill-*` classes in the watchlist for visual consistency. */
 .run-summary-item.kpi-good {
-  background: #dcfce7;
-  border-color: #86efac;
-  color: #14532d;
+  background: var(--success-bg);
+  border-color: var(--success-border);
+  color: var(--success-fg);
 }
 
 .run-summary-item.kpi-warn {
-  background: #fef9c3;
-  border-color: #fde047;
-  color: #713f12;
+  background: var(--warning-bg);
+  border-color: var(--warning-border);
+  color: var(--warning-fg);
 }
 
 .run-summary-item.kpi-bad {
-  background: #fecaca;
-  border-color: #fca5a5;
-  color: #7f1d1d;
+  background: var(--danger-bg);
+  border-color: var(--danger-border);
+  color: var(--danger-fg);
 }
 
 /* Inside a coloured KPI tile, label and value inherit the tile's text colour */
@@ -441,23 +441,23 @@
 }
 
 .provenance-ki {
-  background: #ede9fe;
-  color: #6d28d9;
+  background: var(--purple-bg);
+  color: var(--purple-fg);
 }
 
 .provenance-fallback {
-  background: #fef9c3;
-  color: #854d0e;
+  background: var(--warning-bg);
+  color: var(--warning-fg);
 }
 
 .provenance-manual {
-  background: #dbeafe;
-  color: #1d4ed8;
+  background: var(--info-bg);
+  color: var(--info-fg);
 }
 
 .provenance-locked {
-  background: #fee2e2;
-  color: #b91c1c;
+  background: var(--danger-bg);
+  color: var(--danger-fg);
 }
 
 /* AI section */
@@ -540,7 +540,7 @@
 }
 
 .peer-card:hover {
-  border-color: #93c5fd;
+  border-color: var(--info-border);
   box-shadow: var(--shadow-md);
   transform: translateY(-1px);
 }
@@ -579,13 +579,13 @@
 }
 
 .peer-rec-buy {
-  background: #dcfce7;
-  color: #047857;
+  background: var(--success-bg);
+  color: var(--success-fg);
 }
 
 .peer-rec-risk_buy {
-  background: #f3e8ff;
-  color: #7c3aed;
+  background: var(--purple-bg);
+  color: var(--purple-fg);
 }
 
 .peer-card-stats {
@@ -700,11 +700,11 @@
 .edit-card {
   background: var(--bg-surface);
   border: 1px solid var(--border-default);
-  border-radius: 12px;
-  padding: 18px 20px;
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-3);
   box-shadow: var(--shadow-sm);
 }
 

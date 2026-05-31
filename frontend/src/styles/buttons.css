@@ -11,9 +11,9 @@ button {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  height: 36px;
+  height: var(--control-h);
   padding: 0 14px;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
@@ -66,12 +66,12 @@ button {
 .btn-danger {
   background: var(--bg-surface);
   color: var(--danger);
-  border: 1px solid #fca5a5;
+  border: 1px solid var(--danger-border);
 }
 
 .btn-danger:hover:not(:disabled) {
   background: var(--danger-bg);
-  border-color: #ef4444;
+  border-color: var(--danger-solid);
   color: var(--danger-strong);
 }
 
@@ -115,17 +115,17 @@ button {
   min-width: 20px;
   height: 20px;
   padding: 0 6px;
-  background: #2563eb;
-  color: #fff;
-  border-radius: 999px;
+  background: var(--accent);
+  color: var(--c-white);
+  border-radius: var(--radius-pill);
   font-size: 11px;
   font-weight: 600;
 }
 
 .badge-fallback {
   margin-left: 6px;
-  background: #f59e0b;
-  color: #1f2937;
+  background: var(--warning-solid);
+  color: var(--c-gray-800);
   cursor: help;
 }
 

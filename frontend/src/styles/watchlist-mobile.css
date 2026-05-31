@@ -79,7 +79,7 @@
 }
 
 .wl-card-isin {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: var(--font-mono);
   font-size: 11px;
   background: var(--accent-soft-bg);
   color: var(--accent);
@@ -132,9 +132,9 @@
 }
 
 /* Reuse pill classes for colour coding */
-.wl-card-kpi-value.pill-green { color: #15803d; }
-.wl-card-kpi-value.pill-red   { color: #b91c1c; }
-.wl-card-kpi-value.pill-cyan  { color: #0e7490; }
+.wl-card-kpi-value.pill-green { color: var(--pos-text); }
+.wl-card-kpi-value.pill-red   { color: var(--neg-text); }
+.wl-card-kpi-value.pill-cyan  { color: var(--cyan-fg); }
 
 /* Stellen row */
 .wl-card-jobs {
@@ -177,8 +177,8 @@
   border-radius: 4px;
 }
 
-.wl-card-jobs-delta.delta-up   { background: #dcfce7; color: #14532d; }
-.wl-card-jobs-delta.delta-down { background: #fecaca; color: #7f1d1d; }
+.wl-card-jobs-delta.delta-up   { background: var(--success-bg); color: var(--success-fg); }
+.wl-card-jobs-delta.delta-down { background: var(--danger-bg); color: var(--danger-fg); }
 
 /* Footer */
 .wl-card-footer {

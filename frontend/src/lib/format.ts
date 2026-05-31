@@ -47,6 +47,16 @@ export function formatPercent(
   return `${sign}${v.toFixed(fractionDigits)}${unit}`;
 }
 
+// Directional glyph for a signed value — a redundant, non-colour cue for
+// sentiment (gain/loss) so meaning does not rely on red/green alone. Returns
+// "▲" / "▼" / "" (empty for zero/missing). Render aria-hidden: the signed
+// number it accompanies already conveys direction to assistive tech.
+export function trendArrow(value: number | null | undefined): string {
+  if (isMissing(value)) return "";
+  const v = value as number;
+  return v > 0 ? "▲" : v < 0 ? "▼" : "";
+}
+
 export function formatCurrency(
   value: number | null | undefined,
   currency: string | null | undefined
