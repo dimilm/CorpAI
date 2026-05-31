@@ -58,22 +58,36 @@ never hard-crash a refresh. The house convention (see the existing providers):
    - Anthropic: no JSON mode — prefill the assistant turn with `"{"` and re-prepend it
      before `json.loads` (see `anthropic_provider.py`); auth is `x-api-key` +
      `anthropic-version`, `system` is top-level, `max_tokens` is required.
-3. **Wire it into the factory** — `backend/app/services/provider_factory.py` maps the
-   configured provider `name` to its class and constructs it with
-   `(endpoint, model, api_key)`. Add your provider there the same way the existing
-   five are mapped, so selecting it in settings actually builds your class.
-4. **Add pricing** in `backend/app/providers/ai/pricing.py` so `estimate_cost(name,
-   model, input_tokens, output_tokens)` returns a real number for your provider/model
-   (otherwise `cost_estimate` stays empty). Follow how the existing models are listed.
-5. **Test** — add cases to `backend/tests/test_providers.py`: mock the network (no
-   live calls), assert `complete()` parses a stubbed response into the right
-   `CompletionResult`, and assert a missing key raises `ValueError`. The settings test
-   endpoint is covered by `test_ai_test_endpoint.py` / `test_settings_api.py` and
-   exercises `ping()`.
-6. **Check the frontend** — the settings UI renders a card per provider
-   (`frontend/src/components/settings/`). If the provider list/labels are enumerated
-   on the frontend (rather than served from the backend), add your provider there too;
-   otherwise it appears automatically.
+3. **Wire it into the factory** — `backend/app/services/provider_factory.py` →
+   `build_ai_provider(row)` is an explicit `if provider_name == "...":` chain on
+   `row.ai_provider`. Import your class and add a branch that returns it, defaulting
+   the endpoint when `row.ai_endpoint` is empty:
+   ```python
+   if provider_name == "vendor":
+       endpoint = row.ai_endpoint or "https://api.vendor.com/v1/chat"
+       return VendorProvider(endpoint=endpoint, model=row.ai_model, api_key=api_key)
+   ```
+   (`api_key` is already decrypted above; the trailing `return` is the OpenAI default.)
+4. **Add pricing** in `backend/app/providers/ai/pricing.py`: add a `_VENDOR_PRICES`
+   dict (model id or family-prefix → `(input_per_1k, output_per_1k)` USD) **and** a
+   branch for your provider in `estimate_cost`'s table selection. Prefix matching means
+   `claude-opus-4` covers `claude-opus-4-8`, so key by family. If you skip this, an
+   unknown provider falls through to `0.0` (the self-hosted/Ollama path) — costs show
+   as zero rather than the real figure instead of erroring.
+5. **Test** — add cases to `backend/tests/test_providers.py` following the existing
+   ones: build a stubbed response with the `_mock_async_client(payload)` helper and
+   `patch("app.providers.ai.<name>_provider.httpx.AsyncClient", return_value=cm)`.
+   Cover the four canonical shapes: `complete(..., json_schema=...)` → parsed JSON +
+   token metadata + non-zero `estimated_cost`; `complete(...)` without a schema →
+   `{"text": ...}`; `ping()` with no key → `pytest.raises(ValueError, match="API-Key")`;
+   `ping()` against `http://127.0.0.1:1/...` → raises. CI is offline — never hit a live
+   endpoint. (`ping()` is also exercised end-to-end by `test_ai_test_endpoint.py`.)
+6. **Add the provider to the frontend** — the settings UI enumerates providers
+   client-side: the provider id/label list lives in `frontend/src/types.ts`, rendered
+   by `components/settings/AiProviderCard.tsx` via `SettingsPage.tsx`. Add your
+   provider's id + label (and any default model/endpoint hint) there so it appears in
+   the dropdown. `ai_provider` is stored as a free string, so the backend accepts it
+   the moment the factory branch (step 3) exists.
 7. **Gate** from the repo root: `cd backend && pytest -k provider` then the full
    `pytest`; if you touched the frontend, `npm run typecheck && npm test`.
 
