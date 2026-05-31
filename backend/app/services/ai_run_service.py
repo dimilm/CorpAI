@@ -52,13 +52,24 @@ def recover_dangling_ai_runs() -> None:
             if run.duration_ms is None:
                 run.duration_ms = 0
 
-        now = utcnow()
         stuck_logs = (
             db.query(RunLog)
             .filter(RunLog.run_type == "ai", RunLog.phase != "finished")
             .all()
         )
+
+        # Commit the cancelled AIRun rows first so the per-log counter
+        # recompute below counts them in their final state.
+        if orphaned or stuck_logs:
+            db.commit()
+
+        now = utcnow()
         for run_log in stuck_logs:
+            # Refresh stocks_success/error/done from the (now cancelled) child
+            # runs before finalising — otherwise the progress card keeps the
+            # frozen pre-crash counters next to a "cancelled" status. Mirrors
+            # the cancel path in `execute_batch_in_background`.
+            _recompute_batch_counters(db, run_log, run_log.id)
             run_log.phase = "finished"
             run_log.status = "cancelled"
             run_log.finished_at = now
@@ -68,8 +79,10 @@ def recover_dangling_ai_runs() -> None:
                 else 0
             )
 
-        if orphaned or stuck_logs:
+        if stuck_logs:
             db.commit()
+
+        if orphaned or stuck_logs:
             logger.info(
                 "Recovered %d dangling AI run(s) and %d stuck AI run-log(s) after restart",
                 len(orphaned),

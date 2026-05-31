@@ -193,8 +193,11 @@ def test_recover_dangling_ai_runs_cancels_orphans() -> None:
     _seed_stocks("BATCH0000006")
     db = SessionLocal()
     try:
+        # stocks_total=2 with stale pre-crash counters (one run had finished
+        # before the crash); recovery must recompute these from the children.
         run_log = RunLog(
-            run_type="ai", phase="running", stocks_total=1, status="ok", started_at=utcnow()
+            run_type="ai", phase="running", stocks_total=2, status="ok",
+            stocks_success=1, stocks_done=1, started_at=utcnow(),
         )
         db.add(run_log)
         db.commit()
@@ -205,11 +208,16 @@ def test_recover_dangling_ai_runs_cancels_orphans() -> None:
             isin="BATCH0000006", agent_id="fisher", provider="pending", model="pending",
             status="running", input_payload={}, batch_run_id=run_log_id,
         )
+        done_child = AIRun(
+            isin="BATCH0000006", agent_id="scenario", provider="x", model="y",
+            status="done", input_payload={}, result_payload={"ok": True},
+            batch_run_id=run_log_id,
+        )
         finished = AIRun(
             isin="BATCH0000006", agent_id="redflag", provider="x", model="y",
             status="done", input_payload={}, result_payload={"ok": True},
         )
-        db.add_all([dangling, finished])
+        db.add_all([dangling, done_child, finished])
         db.commit()
         dangling_id, finished_id = dangling.id, finished.id
     finally:
@@ -224,6 +232,11 @@ def test_recover_dangling_ai_runs_cancels_orphans() -> None:
         recovered = db.get(RunLog, run_log_id)
         assert recovered.phase == "finished"
         assert recovered.status == "cancelled"
+        # Counters recomputed from the children: 1 done + 1 cancelled = 2 done,
+        # 1 success, 0 error (no longer the frozen pre-crash 1/1).
+        assert recovered.stocks_done == 2
+        assert recovered.stocks_success == 1
+        assert recovered.stocks_error == 0
         # leaked finished RunLog won't be wiped by the BATCH% cleanup; remove it
         db.delete(recovered)
         db.commit()
