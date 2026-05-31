@@ -26,6 +26,62 @@ from app.services.refresh_lock import clear_cancel, is_cancel_requested
 logger = logging.getLogger(__name__)
 
 
+def recover_dangling_ai_runs() -> None:
+    """Finalise AI runs orphaned by a crash or restart.
+
+    AI agent runs execute only inside this single FastAPI process via
+    ``BackgroundTasks`` (see ``execute_run_in_background``). At startup no such
+    task is in flight yet, so any ``AIRun`` still in ``status="running"`` is
+    necessarily a leftover from a previous process that died mid-run. Left
+    alone these "dangling running" rows make the per-stock UI spin forever and
+    — worse — make every new batch skip the pair with reason "läuft bereits"
+    (the duplicate guard in ``POST /ai/runs/batch``).
+
+    Mark them ``cancelled`` and finalise any ``run_type='ai'`` RunLog bracket
+    still in ``queued``/``running`` so the progress poll terminates. Called
+    from the FastAPI lifespan alongside ``recover_stale_locks`` /
+    ``recover_stale_jobs_locks`` (which cover the market/jobs pipelines; AI
+    runs are not lock-based, hence this dedicated pass).
+    """
+    db = SessionLocal()
+    try:
+        orphaned = db.query(AIRun).filter(AIRun.status == "running").all()
+        for run in orphaned:
+            run.status = "cancelled"
+            run.error_text = (run.error_text or "") + "\nabgebrochen: nach Backend-Neustart"
+            if run.duration_ms is None:
+                run.duration_ms = 0
+
+        now = utcnow()
+        stuck_logs = (
+            db.query(RunLog)
+            .filter(RunLog.run_type == "ai", RunLog.phase != "finished")
+            .all()
+        )
+        for run_log in stuck_logs:
+            run_log.phase = "finished"
+            run_log.status = "cancelled"
+            run_log.finished_at = now
+            run_log.duration_seconds = (
+                max(0, int((now - run_log.started_at).total_seconds()))
+                if run_log.started_at is not None
+                else 0
+            )
+
+        if orphaned or stuck_logs:
+            db.commit()
+            logger.info(
+                "Recovered %d dangling AI run(s) and %d stuck AI run-log(s) after restart",
+                len(orphaned),
+                len(stuck_logs),
+            )
+    except Exception:  # pragma: no cover - startup recovery must never block boot
+        logger.exception("Failed to recover dangling AI runs")
+        db.rollback()
+    finally:
+        db.close()
+
+
 async def execute_run_in_background(
     run_id: int,
     agent_id: str,

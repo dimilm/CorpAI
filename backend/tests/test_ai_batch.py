@@ -9,10 +9,13 @@ import pytest
 from fastapi.testclient import TestClient
 
 import app.api.v1.ai as ai_router
+from app.core.time import utcnow
 from app.db.session import SessionLocal
 from app.main import app
 from app.models.ai_run import AIRun
+from app.models.run_log import RunLog
 from app.models.stock import Stock
+from app.services.ai_run_service import recover_dangling_ai_runs
 
 
 def _login(client: TestClient) -> str:
@@ -182,3 +185,71 @@ def test_batch_deduplicates_repeated_pairs(_no_background: list) -> None:
     body = resp.json()
     assert len(body["queued"]) == 1
     assert _running_count() == 1
+
+
+def test_recover_dangling_ai_runs_cancels_orphans() -> None:
+    """A `running` AIRun orphaned by a crash is forced to `cancelled` and its
+    batch RunLog is finalised; a terminal run in the same batch is untouched."""
+    _seed_stocks("BATCH0000006")
+    db = SessionLocal()
+    try:
+        run_log = RunLog(
+            run_type="ai", phase="running", stocks_total=1, status="ok", started_at=utcnow()
+        )
+        db.add(run_log)
+        db.commit()
+        db.refresh(run_log)
+        run_log_id = run_log.id
+
+        dangling = AIRun(
+            isin="BATCH0000006", agent_id="fisher", provider="pending", model="pending",
+            status="running", input_payload={}, batch_run_id=run_log_id,
+        )
+        finished = AIRun(
+            isin="BATCH0000006", agent_id="redflag", provider="x", model="y",
+            status="done", input_payload={}, result_payload={"ok": True},
+        )
+        db.add_all([dangling, finished])
+        db.commit()
+        dangling_id, finished_id = dangling.id, finished.id
+    finally:
+        db.close()
+
+    recover_dangling_ai_runs()
+
+    db = SessionLocal()
+    try:
+        assert db.get(AIRun, dangling_id).status == "cancelled"
+        assert db.get(AIRun, finished_id).status == "done"  # terminal rows untouched
+        recovered = db.get(RunLog, run_log_id)
+        assert recovered.phase == "finished"
+        assert recovered.status == "cancelled"
+        # leaked finished RunLog won't be wiped by the BATCH% cleanup; remove it
+        db.delete(recovered)
+        db.commit()
+    finally:
+        db.close()
+
+
+def test_recover_dangling_ai_runs_noop_when_clean() -> None:
+    """With no orphaned `running` rows the pass leaves finished work as-is."""
+    _seed_stocks("BATCH0000007")
+    db = SessionLocal()
+    try:
+        done = AIRun(
+            isin="BATCH0000007", agent_id="fisher", provider="x", model="y",
+            status="done", input_payload={}, result_payload={"ok": True},
+        )
+        db.add(done)
+        db.commit()
+        done_id = done.id
+    finally:
+        db.close()
+
+    recover_dangling_ai_runs()
+
+    db = SessionLocal()
+    try:
+        assert db.get(AIRun, done_id).status == "done"
+    finally:
+        db.close()
