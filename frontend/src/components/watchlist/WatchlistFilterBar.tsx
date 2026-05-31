@@ -1,5 +1,6 @@
-import { ChevronDownIcon, SearchIcon, XIcon } from "../icons";
+import { ChevronDownIcon, XIcon } from "../icons";
 import { Dropdown, DropdownItem, DropdownSeparator } from "../Dropdown";
+import { SearchField } from "../SearchField";
 import { FilterValues } from "../../hooks/useWatchlistFilters";
 import type { ActiveFilter } from "./ActiveFilterChips";
 
@@ -30,25 +31,11 @@ export function WatchlistFilterBar({
 }: Props) {
   return (
     <div className="search-bar">
-      <div className="search-field">
-        <SearchIcon className="search-field-icon" />
-        <input
-          value={values.query}
-          onChange={(e) => onPatch({ query: e.target.value })}
-          placeholder="Name oder ISIN suchen…"
-          aria-label="Suche"
-        />
-        {values.query && (
-          <button
-            type="button"
-            className="search-field-clear"
-            aria-label="Suche löschen"
-            onClick={() => onPatch({ query: "" })}
-          >
-            <XIcon />
-          </button>
-        )}
-      </div>
+      <SearchField
+        value={values.query}
+        onChange={(query) => onPatch({ query })}
+        placeholder="Name oder ISIN suchen…"
+      />
 
       <button
         type="button"

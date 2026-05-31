@@ -83,6 +83,15 @@ Remove-Item backend\data\sqlite.db    # Windows / PowerShell
 - **AI agents:** manual-only, one provider active at a time, each run logged in `ai_runs`.
   Provider calls (OpenAI/Gemini/Anthropic/Ollama/yfinance) must tolerate a missing API key **and**
   network errors — never assume a key is present and never hard-crash a refresh.
+- **Shared run-progress pattern:** market refresh, jobs, and AI batch analysis all
+  surface live progress through the same machinery — a `RunLog` row
+  (`run_type='market'|'jobs'|'ai'`, phase `queued→running→finished` + `stocks_*`
+  counters), a `GET /run-logs/current?run_type=…` summary feed, and a
+  `GET /run-logs/{id}/{stocks|jobs|ai}` detail feed. The frontend polls via
+  `useCurrentRun(runType)` ([`src/lib/runProgress.tsx`](frontend/src/lib/runProgress.tsx))
+  with backoff that stops at `finished`, and renders with the shared `StatusBadge` /
+  `FilterPills` / `.run-summary-*` / `.run-progress-*` building blocks. **Reuse this
+  for any new long-running feature — do not roll a separate polling/progress UI.**
 - **Single-process by design.** Cancel registry, rate limiter, and cron all live in the
   FastAPI process; this breaks under horizontal scaling. See
   [`docs/adr/0001-single-process-backend.md`](docs/adr/0001-single-process-backend.md).
@@ -117,6 +126,9 @@ Remove-Item backend\data\sqlite.db    # Windows / PowerShell
 - Auth is **JWT cookie + CSRF** — keep that in mind when adding/testing endpoints.
 - In Docker the SQLite DB and backups live in the `app_data` named volume, **not** the host
   `data/` dir; use `docker/restore-backups.{ps1,sh}` to copy them out.
+- **Line endings:** the repo stores LF and `.gitattributes` pins `eol=lf`, so the working
+  tree stays LF even on Windows (where global `core.autocrlf=true` would otherwise convert
+  to CRLF). Write files as LF; don't re-encode to CRLF or you'll create whole-file diffs.
 
 ## Further reading
 

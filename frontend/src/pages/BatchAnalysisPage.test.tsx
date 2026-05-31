@@ -34,6 +34,8 @@ beforeEach(() => {
   mockedApi.get.mockImplementation((url: string) => {
     if (url === "/ai/agents") return Promise.resolve({ data: AGENTS });
     if (url === "/stocks") return Promise.resolve({ data: STOCKS });
+    // No batch in flight: the progress panel reads the current AI run.
+    if (url === "/run-logs/current") return Promise.resolve({ data: null });
     return Promise.reject(new Error(`unexpected GET ${url}`));
   });
   mockedApi.post.mockResolvedValue({

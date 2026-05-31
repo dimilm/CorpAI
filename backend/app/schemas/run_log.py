@@ -3,6 +3,16 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict
 
 
+class RefreshAllRequest(BaseModel):
+    """Optional body for `POST /jobs/refresh-all`.
+
+    When `isins` is omitted/empty the whole watchlist is refreshed (legacy
+    behaviour). When ISINs are given, only that subset is refreshed.
+    """
+
+    isins: list[str] | None = None
+
+
 class RunLogOut(BaseModel):
     id: int
     run_type: str = "market"

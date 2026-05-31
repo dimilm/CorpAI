@@ -45,7 +45,7 @@ describe("AppLayout — mobile", () => {
   it("does not render desktop nav on mobile", () => {
     renderLayout();
     // Desktop nav links should not be present (only bottom-tab links exist)
-    // The bottom tabs render Dashboard, Watchlist, Stellen, Läufe
+    // The bottom tabs render Dashboard, Watchlist, Stellen, Marktdaten
     expect(screen.queryByText("Einstellungen")).not.toBeInTheDocument();
   });
 
@@ -55,7 +55,7 @@ describe("AppLayout — mobile", () => {
     expect(screen.getByText("Dashboard")).toBeInTheDocument();
     expect(screen.getByText("Watchlist")).toBeInTheDocument();
     expect(screen.getByText("Stellen")).toBeInTheDocument();
-    expect(screen.getByText("Läufe")).toBeInTheDocument();
+    expect(screen.getByText("Marktdaten")).toBeInTheDocument();
   });
 
   it("opens the drawer when the hamburger button is clicked", () => {

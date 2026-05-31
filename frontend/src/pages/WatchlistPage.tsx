@@ -130,7 +130,7 @@ export function WatchlistPage() {
 
   async function triggerAll() {
     try {
-      await triggerAllMutation.mutateAsync();
+      await triggerAllMutation.mutateAsync(undefined);
     } catch (error) {
       toast.error(extractApiError(error, "Refresh-All konnte nicht gestartet werden."));
       return;

@@ -80,7 +80,7 @@ export interface CurrentRunResult {
   isFetching: boolean;
 }
 
-export type RunTypeFilter = "market" | "jobs" | "any";
+export type RunTypeFilter = "market" | "jobs" | "ai" | "any";
 
 // ---------------------------------------------------------------------------
 // Context — single polling loop mounted once inside AuthProvider

@@ -127,4 +127,5 @@ export interface BatchQueuedItem {
 export interface BatchRunResult {
   queued: BatchQueuedItem[];
   skipped: BatchQueuedItem[];
+  run_id?: number | null;
 }

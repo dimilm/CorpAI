@@ -3,9 +3,11 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
 from app.db.session import get_db
+from app.models.ai_run import AIRun
 from app.models.job_source import JobSource, RunJobStatus
 from app.models.run_log import RunLog, RunStockStatus
 from app.models.stock import Stock
+from app.schemas.ai import AIRunStatusOut
 from app.schemas.job_source import RunJobStatusOut
 from app.schemas.run_log import RunLogOut, RunStockStatusOut, RunStockStepOut
 
@@ -14,7 +16,7 @@ router = APIRouter(prefix="/run-logs", tags=["run-logs"])
 
 @router.get("", response_model=list[RunLogOut])
 def list_run_logs(
-    run_type: str | None = Query(default=None, pattern="^(market|jobs)$"),
+    run_type: str | None = Query(default=None, pattern="^(market|jobs|ai)$"),
     _: dict = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> list[RunLog]:
@@ -26,7 +28,7 @@ def list_run_logs(
 
 @router.get("/current", response_model=RunLogOut | None)
 def current_run(
-    run_type: str | None = Query(default=None, pattern="^(market|jobs)$"),
+    run_type: str | None = Query(default=None, pattern="^(market|jobs|ai)$"),
     _: dict = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> RunLog | None:
@@ -153,6 +155,47 @@ def jobs_for_run(
             duration_ms=row.duration_ms,
             jobs_count=row.jobs_count,
             error=row.error,
+        )
+        for row in rows
+    ]
+
+
+@router.get("/{run_id}/ai", response_model=list[AIRunStatusOut])
+def ai_runs_for_run(
+    run_id: int,
+    _: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> list[AIRunStatusOut]:
+    """Per-pair progress detail for a ``run_type='ai'`` RunLog bracket."""
+    run = db.get(RunLog, run_id)
+    if run is None:
+        raise HTTPException(status_code=404, detail="Run not found")
+    if run.run_type != "ai":
+        raise HTTPException(status_code=400, detail="Run is not an AI run")
+
+    rows = (
+        db.query(AIRun)
+        .filter(AIRun.batch_run_id == run_id)
+        .order_by(AIRun.id.asc())
+        .all()
+    )
+    if not rows:
+        return []
+
+    name_lookup = {
+        s.isin: s.name
+        for s in db.query(Stock).filter(Stock.isin.in_({r.isin for r in rows})).all()
+    }
+
+    return [
+        AIRunStatusOut(
+            isin=row.isin,
+            stock_name=name_lookup.get(row.isin),
+            agent_id=row.agent_id,
+            status=row.status,
+            error_text=row.error_text,
+            created_at=row.created_at,
+            duration_ms=row.duration_ms,
         )
         for row in rows
     ]

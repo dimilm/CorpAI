@@ -42,7 +42,7 @@ export function MobileBottomTabs({ hasActiveRun, activeRunTitle }: Props) {
             <span className="mobile-tab-run-dot" title={activeRunTitle} aria-hidden="true" />
           )}
         </span>
-        <span className="mobile-tab-label">Läufe</span>
+        <span className="mobile-tab-label">Marktdaten</span>
       </NavLink>
     </nav>
   );

@@ -119,7 +119,7 @@ export function MobileDrawer({ open, onClose, username }: Props) {
             onClick={onClose}
           >
             <ActivityIcon size={18} />
-            Aktualisierungen
+            Marktdaten
           </NavLink>
           <NavLink
             to="/settings"

@@ -180,6 +180,67 @@ def start_single_refresh_background(isin: str) -> dict:
     return {"run_id": run_id, "phase": "queued", "status": "started"}
 
 
+def start_subset_refresh_background(isins: list[str]) -> dict:
+    """Kick off a market-data refresh for a chosen subset of stocks.
+
+    Mirrors `start_refresh_all_background` but scopes the run to the given
+    ISINs. Always manual (the user explicitly picked the stocks), so the
+    weekend toggle does not apply. Reuses the shared `_LOCK_NAME`, so a subset
+    refresh cannot overlap a bulk or single refresh; when the lock is held the
+    caller receives `status="already_running"`. Returns `status="not_found"`
+    when none of the supplied ISINs match a tracked stock.
+    """
+    # Normalise + dedupe while keeping a stable order.
+    seen: set[str] = set()
+    wanted: list[str] = []
+    for raw in isins:
+        code = (raw or "").strip().upper()
+        if code and code not in seen:
+            seen.add(code)
+            wanted.append(code)
+    if not wanted:
+        return {"run_id": None, "phase": None, "status": "not_found"}
+
+    db = SessionLocal()
+    try:
+        stocks = db.query(Stock).filter(Stock.isin.in_(wanted)).all()
+        if not stocks:
+            return {"run_id": None, "phase": None, "status": "not_found"}
+
+        owner = process_owner()
+        if not lock_manager.try_acquire_lock(db, _LOCK_NAME, owner):
+            current = (
+                db.query(RunLog)
+                .filter(RunLog.phase.in_(("queued", "running")))
+                .order_by(RunLog.id.desc())
+                .first()
+            )
+            return {
+                "run_id": current.id if current else None,
+                "phase": "running",
+                "status": "already_running",
+            }
+
+        run = RunLog(phase="queued", started_at=utcnow(), stocks_total=len(stocks))
+        db.add(run)
+        db.commit()
+
+        init_run_stocks(db, run.id, stocks)
+        cleanup_old_run_status(db, two_most_recent_run_ids(db))
+
+        run_id = run.id
+        owner_id = owner
+        # The resolved subset (only ISINs that matched a stock) — the worker
+        # re-queries the stock list, so it must use the same filter as the
+        # RunStockStatus rows we just seeded.
+        resolved = [s.isin for s in stocks]
+    finally:
+        db.close()
+
+    refresh_worker.submit(lambda: _execute_refresh(run_id, owner_id, isins=resolved))
+    return {"run_id": run_id, "phase": "queued", "status": "started"}
+
+
 def cancel_current_refresh() -> dict:
     """Flag the currently running refresh for cancellation.
 
@@ -232,9 +293,14 @@ async def _execute_refresh(
     run_id: int,
     owner: str,
     *,
+    isins: list[str] | None = None,
     market_service: MarketService | None = None,
 ) -> None:
-    """Process every stock for `run_id`, writing live progress to the DB.
+    """Process the stocks for `run_id`, writing live progress to the DB.
+
+    By default every tracked stock is refreshed. When `isins` is given the run
+    is scoped to that subset — the filter must be applied here (not just when
+    seeding `RunStockStatus` rows) because the worker re-reads the stock list.
 
     `market_service` is overridable so callers (cron, single-shot endpoint,
     tests) can inject a stubbed provider; the default falls back to the
@@ -256,7 +322,10 @@ async def _execute_refresh(
         cancel_check = lambda: is_cancel_requested(run_id)  # noqa: E731
 
         run = db.get(RunLog, run_id)
-        stocks = db.query(Stock).all()
+        stock_query = db.query(Stock)
+        if isins is not None:
+            stock_query = stock_query.filter(Stock.isin.in_(isins))
+        stocks = stock_query.all()
         for stock in stocks:
             if cancel_check():
                 state["cancelled"] = True

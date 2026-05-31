@@ -28,6 +28,7 @@ from app.agents import get_agent, list_agents
 from app.api.deps import csrf_guard, get_ai_provider, get_current_user, require_admin
 from app.db.session import get_db
 from app.models.ai_run import AIRun
+from app.models.run_log import RunLog
 from app.models.settings import AppSettings
 from app.models.stock import Stock
 from app.providers.ai.base import AIProvider
@@ -44,6 +45,7 @@ from app.services.ai_run_service import (
     execute_run_in_background,
 )
 from app.services.provider_factory import build_ai_provider  # re-exported for monkeypatch back-compat
+from app.services.refresh_lock import request_cancel_for_run
 from app.services.run_status_service import humanize_error
 
 __all__ = ["router", "build_ai_provider"]
@@ -147,6 +149,7 @@ def run_agents_batch(
     queued: list[BatchQueuedItem] = []
     skipped: list[BatchQueuedItem] = []
     items: list[tuple[int, str, dict]] = []
+    queued_ids: list[int] = []
 
     # De-duplicate so the same pair can't be queued twice within one request
     # (the "already running" guard below only sees committed rows).
@@ -190,10 +193,50 @@ def run_agents_batch(
                 BatchQueuedItem(agent_id=agent_id, isin=stock.isin, run_id=run.id, status="queued")
             )
             items.append((run.id, agent_id, {}))
+            queued_ids.append(run.id)
 
-    if items:
-        background.add_task(execute_batch_in_background, items)
-    return BatchRunResult(queued=queued, skipped=skipped)
+    if not items:
+        return BatchRunResult(queued=queued, skipped=skipped, run_id=None)
+
+    # Wrap the queued runs in a RunLog "batch bracket" so the frontend can
+    # reuse the existing RunLog progress/cancel machinery (market & jobs runs).
+    run_log = RunLog(run_type="ai", phase="queued", stocks_total=len(items), status="ok")
+    db.add(run_log)
+    db.commit()
+    db.refresh(run_log)
+
+    # `queue_run` commits each AIRun internally, so stamp the bracket id with a
+    # single bulk update after the RunLog exists.
+    db.query(AIRun).filter(AIRun.id.in_(queued_ids)).update(
+        {AIRun.batch_run_id: run_log.id}, synchronize_session=False
+    )
+    db.commit()
+
+    background.add_task(execute_batch_in_background, items, run_log.id)
+    return BatchRunResult(queued=queued, skipped=skipped, run_id=run_log.id)
+
+
+@router.post("/runs/batch/cancel", dependencies=[Depends(csrf_guard)])
+def cancel_agents_batch(
+    _: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> dict:
+    """Request cancellation of the most recent in-flight AI batch.
+
+    Flags the latest unfinished ``run_type='ai'`` RunLog in the shared cancel
+    registry; the background task notices the flag before its next item and
+    marks the remaining runs as ``cancelled``.
+    """
+    run_log = (
+        db.query(RunLog)
+        .filter(RunLog.run_type == "ai", RunLog.phase != "finished")
+        .order_by(RunLog.id.desc())
+        .first()
+    )
+    if run_log is None:
+        return {"cancelled": False, "run_id": None}
+    request_cancel_for_run(run_log.id)
+    return {"cancelled": True, "run_id": run_log.id}
 
 
 @router.get(

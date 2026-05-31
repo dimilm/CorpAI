@@ -2,24 +2,8 @@
 .batch-page-header {
   margin-bottom: 1rem;
 }
-.batch-page-header h1 {
+.batch-page-header h2 {
   margin: 0 0 0.35rem;
-}
-
-.batch-stock-toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 0.75rem;
-}
-.batch-stock-toolbar .form-input {
-  flex: 1 1 16rem;
-}
-
-.batch-stock-list {
-  max-height: 22rem;
-  overflow-y: auto;
 }
 
 .batch-action-bar {

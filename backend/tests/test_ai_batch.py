@@ -42,7 +42,7 @@ def _no_background(monkeypatch: pytest.MonkeyPatch) -> list:
     """Replace the serial runner with a recorder so no LLM calls happen."""
     captured: list = []
 
-    async def _fake(items: list) -> None:
+    async def _fake(items: list, run_log_id: int) -> None:
         captured.extend(items)
 
     monkeypatch.setattr(ai_router, "execute_batch_in_background", _fake)

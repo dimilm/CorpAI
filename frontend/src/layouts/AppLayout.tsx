@@ -14,7 +14,7 @@ interface Props {
   children: ReactNode;
 }
 
-// Labels for the live-indicator next to the "Aktualisierungen" nav entry.
+// Labels for the live-indicator next to the "Marktdaten" nav entry.
 // Kept short on purpose so the menu stays compact when both pipelines run.
 const RUN_TYPE_LABEL = {
   market: "Markt",
@@ -79,7 +79,7 @@ export function AppLayout({ children }: Props) {
             to="/runs"
             className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}
           >
-            <span>Aktualisierungen</span>
+            <span>Marktdaten</span>
             {hasActiveRun && (
               <span className="nav-run-indicator" title={indicatorTitle}>
                 <span className="nav-run-dot" aria-hidden="true" />

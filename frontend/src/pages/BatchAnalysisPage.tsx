@@ -1,14 +1,21 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { api } from "../api/client";
-import { EmptyState } from "../components/EmptyState";
-import { SearchIcon } from "../components/icons";
+import { AIBatchProgress } from "../components/ai/AIBatchProgress";
+import { AIPillRow } from "../components/ai/AIPillRow";
 import { Spinner } from "../components/Spinner";
-import { useAgents, useRunAgentsBatch } from "../hooks/useAIAgents";
+import { StockSelectList, StockSelectColumn } from "../components/StockSelectList";
+import {
+  useAgents,
+  useCancelAIBatch,
+  useRunAgentsBatch,
+  useRunAIStatuses,
+} from "../hooks/useAIAgents";
 import { useDocumentTitle } from "../hooks/useDocumentTitle";
 import { STOCKS_LIST_KEY } from "../hooks/useStockMutations";
 import { extractApiError } from "../lib/apiError";
+import { useCurrentRun, useInvalidateOnRunFinish } from "../lib/runProgress";
 import { toast } from "../lib/toast";
 import type { Stock } from "../types";
 
@@ -17,13 +24,19 @@ import type { Stock } from "../types";
 // explicitly rather than triggering it across a whole batch by accident.
 const DEFAULT_OFF_AGENT_IDS = new Set(["tournament"]);
 
-// After a batch the watchlist KI pills read `latest_ai_runs` off the stocks
-// list, which only changes once the serial runs finish. We can't know exactly
-// when that is, so we nudge a refetch a few times across the first minute.
-const REFETCH_DELAYS_MS = [15_000, 35_000, 60_000];
+// Extra column on the company table: the latest AI result per method, so the
+// user can pick stocks based on what has (not) been analysed yet. Pills link
+// to the stock detail for that agent (they stop row-selection propagation).
+const STOCK_KI_COLUMNS: StockSelectColumn[] = [
+  {
+    key: "ki",
+    header: "Letzte KI-Analysen",
+    render: (stock) => <AIPillRow stock={stock} />,
+  },
+];
 
 export function BatchAnalysisPage() {
-  useDocumentTitle("KI-Stapellauf");
+  useDocumentTitle("KI-Analysen");
   const queryClient = useQueryClient();
 
   const agentsQuery = useAgents();
@@ -35,6 +48,20 @@ export function BatchAnalysisPage() {
 
   const agents = useMemo(() => agentsQuery.data ?? [], [agentsQuery.data]);
   const stocks = useMemo(() => stocksQuery.data ?? [], [stocksQuery.data]);
+
+  // Reuse the RunLog progress machinery the Marktdaten/Stellen pages use.
+  // `useCurrentRun("ai")` polls `/run-logs/current?run_type=ai` and the detail
+  // feed swaps spinners for results as the serial batch advances.
+  const { data: aiRun } = useCurrentRun("ai");
+  const isRunning = aiRun != null && aiRun.phase !== "finished";
+  const aiStatuses = useRunAIStatuses(aiRun?.id, isRunning);
+  const cancelBatch = useCancelAIBatch();
+  useInvalidateOnRunFinish([STOCKS_LIST_KEY]);
+
+  const agentLabel = useCallback(
+    (id: string) => agents.find((a) => a.id === id)?.name ?? id,
+    [agents]
+  );
 
   // `null` means "not yet touched" → fall back to the default selection
   // (everything except the expensive Tournament agent), computed from the
@@ -48,48 +75,14 @@ export function BatchAnalysisPage() {
   const selectedAgents = agentOverride ?? defaultAgents;
 
   const [selectedIsins, setSelectedIsins] = useState<Set<string>>(new Set());
-  const [search, setSearch] = useState("");
 
   const batch = useRunAgentsBatch();
-
-  const filteredStocks = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return stocks;
-    return stocks.filter(
-      (s) => s.name.toLowerCase().includes(q) || s.isin.toLowerCase().includes(q)
-    );
-  }, [stocks, search]);
-
-  const visibleIsins = useMemo(() => filteredStocks.map((s) => s.isin), [filteredStocks]);
-  const allVisibleSelected =
-    visibleIsins.length > 0 && visibleIsins.every((isin) => selectedIsins.has(isin));
 
   function toggleAgent(id: string) {
     setAgentOverride((current) => {
       const next = new Set(current ?? defaultAgents);
       if (next.has(id)) next.delete(id);
       else next.add(id);
-      return next;
-    });
-  }
-
-  function toggleStock(isin: string) {
-    setSelectedIsins((current) => {
-      const next = new Set(current);
-      if (next.has(isin)) next.delete(isin);
-      else next.add(isin);
-      return next;
-    });
-  }
-
-  function toggleAllVisible() {
-    setSelectedIsins((current) => {
-      const next = new Set(current);
-      if (allVisibleSelected) {
-        for (const isin of visibleIsins) next.delete(isin);
-      } else {
-        for (const isin of visibleIsins) next.add(isin);
-      }
       return next;
     });
   }
@@ -112,13 +105,11 @@ export function BatchAnalysisPage() {
       toast.success(msg, { title: "KI-Stapellauf" });
       setSelectedIsins(new Set());
       // Pull the finished runs into the stocks list (and thus the KI pills).
+      // `useInvalidateOnRunFinish` re-fetches again once the run completes.
       queryClient.invalidateQueries({ queryKey: STOCKS_LIST_KEY });
-      for (const delay of REFETCH_DELAYS_MS) {
-        window.setTimeout(
-          () => queryClient.invalidateQueries({ queryKey: STOCKS_LIST_KEY }),
-          delay
-        );
-      }
+      // Kick off the current-run poll immediately so the progress panel appears
+      // without waiting for the next background tick.
+      queryClient.invalidateQueries({ queryKey: ["run-current", "ai"] });
     } catch (error) {
       toast.error(extractApiError(error, "Stapellauf konnte nicht gestartet werden."));
     }
@@ -129,13 +120,30 @@ export function BatchAnalysisPage() {
   return (
     <div className="page">
       <header className="batch-page-header">
-        <h1>KI-Stapellauf</h1>
+        <h2>KI-Analysen</h2>
         <p className="detail-card-hint">
           Wähle mehrere Unternehmen und KI-Methoden aus, um alle Analysen in
           einem Durchlauf zu starten. Die Läufe werden nacheinander im
           Hintergrund ausgeführt.
         </p>
       </header>
+
+      {aiRun && (
+        <AIBatchProgress
+          run={aiRun}
+          items={aiStatuses.data ?? []}
+          agentLabel={agentLabel}
+          onCancel={() =>
+            cancelBatch.mutate(undefined, {
+              onSuccess: (r) => {
+                if (r?.cancelled) toast.success("Lauf wird abgebrochen.");
+              },
+              onError: (e) => toast.error(extractApiError(e, "Abbruch fehlgeschlagen.")),
+            })
+          }
+          cancelPending={cancelBatch.isPending}
+        />
+      )}
 
       {loading && <Spinner label="Lade Daten …" />}
       {agentsQuery.isError && (
@@ -169,54 +177,12 @@ export function BatchAnalysisPage() {
           </section>
 
           <section className="detail-card">
-            <div className="detail-card-head">
-              <h3>Unternehmen</h3>
-              <span className="detail-card-hint">
-                {selectedIsins.size} ausgewählt
-              </span>
-            </div>
-
-            <div className="batch-stock-toolbar">
-              <input
-                type="search"
-                className="form-input"
-                placeholder="Nach Name oder ISIN filtern …"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                aria-label="Unternehmen filtern"
-              />
-              <label className="ai-peer-chip">
-                <input
-                  type="checkbox"
-                  checked={allVisibleSelected}
-                  onChange={toggleAllVisible}
-                  disabled={visibleIsins.length === 0}
-                />
-                Alle sichtbaren
-              </label>
-            </div>
-
-            {filteredStocks.length === 0 ? (
-              <EmptyState
-                icon={<SearchIcon size={20} />}
-                title="Keine Unternehmen"
-                description="Passe den Filter an oder lege zunächst Unternehmen in der Watchlist an."
-              />
-            ) : (
-              <div className="ai-peer-list batch-stock-list">
-                {filteredStocks.map((s) => (
-                  <label key={s.isin} className="ai-peer-chip">
-                    <input
-                      type="checkbox"
-                      checked={selectedIsins.has(s.isin)}
-                      onChange={() => toggleStock(s.isin)}
-                    />
-                    {s.name}
-                    <span className="ai-peer-chip-isin">{s.isin}</span>
-                  </label>
-                ))}
-              </div>
-            )}
+            <StockSelectList
+              stocks={stocks}
+              selectedIsins={selectedIsins}
+              onChange={setSelectedIsins}
+              extraColumns={STOCK_KI_COLUMNS}
+            />
           </section>
 
           <div className="batch-action-bar">
@@ -238,3 +204,5 @@ export function BatchAnalysisPage() {
     </div>
   );
 }
+
+export default BatchAnalysisPage;

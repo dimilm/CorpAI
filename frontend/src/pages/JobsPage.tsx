@@ -1,9 +1,12 @@
-import { ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router-dom";
 
+import { FilterPills, FilterPillOption } from "../components/FilterPills";
 import { JobsMobileList } from "../components/jobs/JobsMobileList";
+import { SearchField } from "../components/SearchField";
 import { Spinner } from "../components/Spinner";
+import { StatusBadge } from "../components/StatusBadge";
 import { CreateStockModal } from "../components/watchlist/CreateStockModal";
 import { useDocumentTitle } from "../hooks/useDocumentTitle";
 import { useIsMobile } from "../hooks/useBreakpoint";
@@ -28,7 +31,6 @@ import {
   liveRunSeconds,
   phaseLabel,
   runStatusLabel,
-  STEP_STATUS_LABEL,
   useCurrentRun,
 } from "../lib/runProgress";
 import { toast } from "../lib/toast";
@@ -81,33 +83,6 @@ function RunSummaryItem({
       <div className="run-summary-value">{value}</div>
       {sub && <div className="run-summary-sub">{sub}</div>}
     </div>
-  );
-}
-
-function FilterPill({
-  active,
-  count,
-  accent,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  count: number;
-  accent?: string;
-  onClick: () => void;
-  children: ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      className={`run-filter-pill${active ? " is-active" : ""}${
-        accent ? ` run-filter-${accent}` : ""
-      }`}
-      onClick={onClick}
-    >
-      <span>{children}</span>
-      <span className="run-filter-count">{count}</span>
-    </button>
   );
 }
 
@@ -283,6 +258,27 @@ export function JobsPage() {
   const done = currentRun?.stocks_done ?? 0;
   const progressPct = total > 0 ? Math.min(100, Math.round((done / total) * 100)) : 0;
 
+  const liveFilterOptions: FilterPillOption<LiveFilter>[] = [
+    { value: "all", label: "Alle", count: filtered.length },
+    { value: "running", label: "Läuft", count: liveCounters.running, accent: "running" },
+    { value: "done", label: "Fertig", count: liveCounters.done, accent: "done" },
+    { value: "error", label: "Fehler", count: liveCounters.error, accent: "error" },
+    { value: "not_started", label: "Wartet", count: liveCounters.not_started, accent: "not_started" },
+    {
+      value: "cancelled",
+      label: "Abgebrochen",
+      count: liveCounters.cancelled,
+      accent: "cancelled",
+      hidden: liveCounters.cancelled === 0,
+    },
+  ];
+
+  const sourceFilterOptions: FilterPillOption<Filter>[] = [
+    { value: "all", label: "Alle", count: sources.length },
+    { value: "active", label: "Aktiv" },
+    { value: "inactive", label: "Inaktiv" },
+  ];
+
   return (
     <div className="page">
       <header className="page-header">
@@ -375,89 +371,26 @@ export function JobsPage() {
       )}
 
       {currentRun && (
-        <div className="run-filter-row">
-          <FilterPill
-            active={liveFilter === "all"}
-            onClick={() => setLiveFilter("all")}
-            count={filtered.length}
-          >
-            Alle
-          </FilterPill>
-          <FilterPill
-            active={liveFilter === "running"}
-            onClick={() => setLiveFilter("running")}
-            count={liveCounters.running}
-            accent="running"
-          >
-            Läuft
-          </FilterPill>
-          <FilterPill
-            active={liveFilter === "done"}
-            onClick={() => setLiveFilter("done")}
-            count={liveCounters.done}
-            accent="done"
-          >
-            Fertig
-          </FilterPill>
-          <FilterPill
-            active={liveFilter === "error"}
-            onClick={() => setLiveFilter("error")}
-            count={liveCounters.error}
-            accent="error"
-          >
-            Fehler
-          </FilterPill>
-          <FilterPill
-            active={liveFilter === "not_started"}
-            onClick={() => setLiveFilter("not_started")}
-            count={liveCounters.not_started}
-            accent="not_started"
-          >
-            Wartet
-          </FilterPill>
-          {liveCounters.cancelled > 0 && (
-            <FilterPill
-              active={liveFilter === "cancelled"}
-              onClick={() => setLiveFilter("cancelled")}
-              count={liveCounters.cancelled}
-              accent="cancelled"
-            >
-              Abgebrochen
-            </FilterPill>
-          )}
-        </div>
+        <FilterPills
+          value={liveFilter}
+          onChange={setLiveFilter}
+          options={liveFilterOptions}
+          ariaLabel="Lauf-Status filtern"
+        />
       )}
 
       <div className="jobs-toolbar">
-        <div className="jobs-toolbar-filters">
-          <button
-            type="button"
-            className={`run-filter-pill${filter === "all" ? " is-active" : ""}`}
-            onClick={() => setFilter("all")}
-          >
-            Alle <span className="run-filter-count">{sources.length}</span>
-          </button>
-          <button
-            type="button"
-            className={`run-filter-pill${filter === "active" ? " is-active" : ""}`}
-            onClick={() => setFilter("active")}
-          >
-            Aktiv
-          </button>
-          <button
-            type="button"
-            className={`run-filter-pill${filter === "inactive" ? " is-active" : ""}`}
-            onClick={() => setFilter("inactive")}
-          >
-            Inaktiv
-          </button>
-        </div>
-        <input
-          type="search"
-          className="form-input"
-          placeholder="Filtern (Name oder ISIN)"
+        <FilterPills
+          className="jobs-toolbar-filters"
+          value={filter}
+          onChange={setFilter}
+          options={sourceFilterOptions}
+          ariaLabel="Quellen filtern"
+        />
+        <SearchField
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={setSearch}
+          placeholder="Filtern (Name oder ISIN)"
         />
       </div>
 
@@ -569,11 +502,7 @@ export function JobsPage() {
                     <td>
                       {liveStatus ? (
                         <div className="run-step-cell" title={status?.error ?? undefined}>
-                          <span
-                            className={`run-badge run-badge-${liveStatus}`}
-                          >
-                            {STEP_STATUS_LABEL[liveStatus]}
-                          </span>
+                          <StatusBadge status={liveStatus} />
                           {status?.started_at && (
                             <span className="run-duration">
                               {formatDuration(

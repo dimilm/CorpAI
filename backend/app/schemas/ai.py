@@ -63,3 +63,20 @@ class BatchQueuedItem(BaseModel):
 class BatchRunResult(BaseModel):
     queued: list[BatchQueuedItem]
     skipped: list[BatchQueuedItem]
+    # RunLog id of the batch bracket created for the queued runs. None when no
+    # pair was queued. Distinct from the per-item `run_id` (an AIRun id).
+    run_id: int | None = None
+
+
+class AIRunStatusOut(BaseModel):
+    """Per-pair progress detail for a ``run_type='ai'`` RunLog bracket."""
+
+    isin: str
+    stock_name: str | None = None
+    agent_id: str
+    status: str  # running | done | error | cancelled
+    error_text: str | None = None
+    created_at: datetime
+    duration_ms: int | None = None
+
+    model_config = ConfigDict(from_attributes=True)

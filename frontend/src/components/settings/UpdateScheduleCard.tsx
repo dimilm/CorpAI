@@ -50,8 +50,8 @@ export function UpdateScheduleCard({ settings, onChange }: Props) {
           }}
         />
         <span className="helper">
-          Standard 22:30 (lokale Zeit), nach US-Börsenschluss. Lauf-Historie unter{" "}
-          <Link to="/runs" className="settings-info-link">Läufe</Link>.
+          Standard 22:30 (lokale Zeit), nach US-Börsenschluss. Verlauf unter{" "}
+          <Link to="/runs" className="settings-info-link">Marktdaten</Link>.
         </span>
       </div>
 
@@ -77,7 +77,7 @@ export function UpdateScheduleCard({ settings, onChange }: Props) {
         <span>
           Nächster geplanter Lauf: <strong>{nextRunLabel}</strong>
         </span>
-        <Link to="/runs" className="settings-info-link">→ Lauf-Historie öffnen</Link>
+        <Link to="/runs" className="settings-info-link">→ Verlauf öffnen</Link>
       </div>
     </section>
   );
