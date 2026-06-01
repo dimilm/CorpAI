@@ -66,8 +66,8 @@ docker compose up --build
 ```
 
 - Frontend: `http://localhost:8080`
-- API docs: `http://localhost:8080/api/v1/docs`
 - Default login: `admin / changeme`
+- API docs (Swagger): `/docs` on the backend — in local dev `http://localhost:8001/docs`. Not proxied through `:8080`; the Docker nginx forwards only `/api/*`.
 
 > **Plain HTTP (no TLS)?** Set `COOKIE_SECURE=false` in `docker/.env` — otherwise auth cookies are silently dropped and every request fails with `{"detail":"Missing auth cookie"}`.
 

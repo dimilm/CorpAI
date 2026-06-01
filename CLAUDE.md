@@ -82,8 +82,10 @@ Remove-Item backend\data\sqlite.db    # Windows / PowerShell
   (`pip install -e ".[playwright]" && python -m playwright install chromium`) is only
   needed for the three `playwright_*` job adapters; default install stays slim.
 - **Docker quick start:** `cd docker && cp .env.example .env`, fill secrets,
-  `docker compose up --build`. App at `http://localhost:8080`, API docs at
-  `/api/v1/docs`, default login `admin / changeme`.
+  `docker compose up --build`. App at `http://localhost:8080`, default login
+  `admin / changeme`. (Swagger UI lives at `/docs` on the backend — local dev
+  `http://localhost:8001/docs`; the Docker nginx proxies only `/api/*`, so it is
+  not exposed on `:8080`.)
 - Restart uvicorn manually (not just `--reload`) after changes to `app/main.py`
   startup/`lifespan` or after new Alembic revisions.
 
