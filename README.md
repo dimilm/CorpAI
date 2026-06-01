@@ -39,6 +39,23 @@ ENCRYPTION_KEY=$enc
 "@ | Set-Content -Encoding ASCII .env
 ```
 
+Bash one-liner (Linux, no Python required — uses `openssl` + GNU `sed`). Writes both
+keys into `docker/.env`, updating existing lines or appending them, so the rest
+of `.env.example` is preserved:
+
+```bash
+cd docker
+cp -n .env.example .env   # if not already created
+
+# JWT_SECRET: URL-safe, no padding. ENCRYPTION_KEY: a Fernet key — 32 bytes,
+# URL-safe base64 WITH '=' padding (do not strip it, or the backend won't start).
+jwt=$(openssl rand -base64 64 | tr '+/' '-_' | tr -d '=\n')
+enc=$(openssl rand -base64 32 | tr '+/' '-_' | tr -d '\n')
+
+grep -q '^JWT_SECRET='     .env && sed -i "s|^JWT_SECRET=.*|JWT_SECRET=$jwt|"         .env || echo "JWT_SECRET=$jwt"     >> .env
+grep -q '^ENCRYPTION_KEY=' .env && sed -i "s|^ENCRYPTION_KEY=.*|ENCRYPTION_KEY=$enc|" .env || echo "ENCRYPTION_KEY=$enc" >> .env
+```
+
 > Never commit `docker/.env`. Rotating `ENCRYPTION_KEY` invalidates the stored AI API key — back it up before changing it in production.
 
 ### 2. Build and run
@@ -49,8 +66,8 @@ docker compose up --build
 ```
 
 - Frontend: `http://localhost:8080`
-- API docs: `http://localhost:8080/api/v1/docs`
 - Default login: `admin / changeme`
+- API docs (Swagger): `/docs` on the backend — in local dev `http://localhost:8001/docs`. Not proxied through `:8080`; the Docker nginx forwards only `/api/*`.
 
 > **Plain HTTP (no TLS)?** Set `COOKIE_SECURE=false` in `docker/.env` — otherwise auth cookies are silently dropped and every request fails with `{"detail":"Missing auth cookie"}`.
 
