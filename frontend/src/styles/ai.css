@@ -887,3 +887,350 @@
   margin-top: 2px;
   color: var(--text-secondary);
 }
+
+/* ===========================================================================
+   Reverse-DCF / intrinsic value result
+   =========================================================================== */
+.ai-result-verdict-cheap {
+  background: var(--success-bg);
+  color: var(--success-fg);
+}
+
+.ai-result-verdict-fair {
+  background: var(--warning-bg);
+  color: var(--warning-fg);
+}
+
+.ai-result-verdict-expensive {
+  background: var(--danger-bg);
+  color: var(--danger-fg);
+}
+
+.ai-dcf-range {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.ai-dcf-range-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+  background: var(--bg-surface);
+}
+
+.ai-dcf-range-base {
+  border-color: var(--info-border);
+  background: linear-gradient(180deg, var(--info-bg), var(--bg-surface));
+}
+
+.ai-dcf-params {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
+  margin: 0 0 12px;
+}
+
+.ai-dcf-params div {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 10px;
+  background: var(--bg-surface-2);
+  border-radius: 6px;
+}
+
+.ai-dcf-params dt {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.ai-dcf-params dd {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+
+.ai-dcf-lists {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.ai-dcf-list-title {
+  margin: 0 0 6px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+}
+
+.ai-dcf-list {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-primary);
+}
+
+.ai-dcf-list li {
+  margin-bottom: 4px;
+}
+
+/* ===========================================================================
+   Porter's Five Forces result
+   =========================================================================== */
+.ai-forces-attractiveness {
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+.ai-forces-attr-attractive {
+  background: var(--success-bg);
+  color: var(--success-fg);
+}
+
+.ai-forces-attr-neutral {
+  background: var(--bg-subtle);
+  color: var(--text-secondary);
+}
+
+.ai-forces-attr-unattractive {
+  background: var(--danger-bg);
+  color: var(--danger-fg);
+}
+
+.ai-forces-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ai-forces-item {
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border-default);
+  background: var(--bg-surface);
+  border-left-width: 4px;
+}
+
+.ai-forces-item.ai-forces-low {
+  border-left-color: var(--success-solid);
+}
+
+.ai-forces-item.ai-forces-medium {
+  border-left-color: var(--warning-solid);
+}
+
+.ai-forces-item.ai-forces-high {
+  border-left-color: var(--danger-solid);
+}
+
+.ai-forces-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+
+.ai-forces-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-strong);
+}
+
+.ai-forces-intensity-pill {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 2px 6px;
+  border-radius: 999px;
+}
+
+.ai-forces-intensity-pill.ai-forces-low {
+  background: var(--success-bg);
+  color: var(--success-fg);
+}
+
+.ai-forces-intensity-pill.ai-forces-medium {
+  background: var(--warning-bg);
+  color: var(--warning-fg);
+}
+
+.ai-forces-intensity-pill.ai-forces-high {
+  background: var(--danger-bg);
+  color: var(--danger-fg);
+}
+
+.ai-forces-desc {
+  margin: 0 0 4px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-primary);
+}
+
+.ai-forces-drivers {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+/* ===========================================================================
+   Bull-vs-Bear debate result
+   =========================================================================== */
+.ai-debate-winner {
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+.ai-debate-bull {
+  background: var(--success-bg);
+  color: var(--success-fg);
+}
+
+.ai-debate-bear {
+  background: var(--danger-bg);
+  color: var(--danger-fg);
+}
+
+.ai-debate-tie {
+  background: var(--bg-subtle);
+  color: var(--text-secondary);
+}
+
+.ai-debate-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.ai-debate-col {
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border-default);
+  background: var(--bg-surface);
+}
+
+.ai-debate-col-bull {
+  border-color: var(--success-border);
+  background: linear-gradient(180deg, var(--success-bg), var(--bg-surface));
+}
+
+.ai-debate-col-bear {
+  border-color: var(--danger-border);
+  background: linear-gradient(180deg, var(--danger-bg), var(--bg-surface));
+}
+
+.ai-debate-col-title {
+  margin: 0 0 6px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-secondary);
+}
+
+.ai-debate-args {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-primary);
+}
+
+.ai-debate-args li {
+  margin-bottom: 4px;
+}
+
+/* ===========================================================================
+   Watchlist pills for the new agents (mirror the detail-view palette)
+   =========================================================================== */
+/* DCF pill — verdict colour (cheap = green, fair = amber, expensive = red). */
+.ai-pill-dcf-cheap {
+  background: var(--success-bg);
+  color: var(--success-fg);
+}
+.ai-pill-dcf-cheap .ai-pill-short {
+  background: var(--success-solid);
+}
+.ai-pill-dcf-fair {
+  background: var(--warning-bg);
+  color: var(--warning-fg);
+}
+.ai-pill-dcf-fair .ai-pill-short {
+  background: var(--warning-solid);
+}
+.ai-pill-dcf-expensive {
+  background: var(--danger-bg);
+  color: var(--danger-fg);
+}
+.ai-pill-dcf-expensive .ai-pill-short {
+  background: var(--danger-solid);
+}
+
+/* Five Forces pill — industry attractiveness colour. */
+.ai-pill-forces-attractive {
+  background: var(--success-bg);
+  color: var(--success-fg);
+}
+.ai-pill-forces-attractive .ai-pill-short {
+  background: var(--success-solid);
+}
+.ai-pill-forces-neutral {
+  background: var(--bg-subtle);
+  color: var(--text-secondary);
+}
+.ai-pill-forces-neutral .ai-pill-short {
+  background: var(--text-muted);
+}
+.ai-pill-forces-unattractive {
+  background: var(--danger-bg);
+  color: var(--danger-fg);
+}
+.ai-pill-forces-unattractive .ai-pill-short {
+  background: var(--danger-solid);
+}
+
+/* Debate pill — winning side colour (bull = green, bear = red, tie = grey). */
+.ai-pill-debate-bull {
+  background: var(--success-bg);
+  color: var(--success-fg);
+}
+.ai-pill-debate-bull .ai-pill-short {
+  background: var(--success-solid);
+}
+.ai-pill-debate-bear {
+  background: var(--danger-bg);
+  color: var(--danger-fg);
+}
+.ai-pill-debate-bear .ai-pill-short {
+  background: var(--danger-solid);
+}
+.ai-pill-debate-tie {
+  background: var(--bg-subtle);
+  color: var(--text-secondary);
+}
+.ai-pill-debate-tie .ai-pill-short {
+  background: var(--text-muted);
+}

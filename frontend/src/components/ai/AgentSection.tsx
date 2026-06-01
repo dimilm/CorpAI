@@ -64,6 +64,22 @@ function summariseRun(run: AIRun): string {
       const overall = (payload as { overall_risk?: string }).overall_risk;
       return `${flags} Flag(s) · Risiko ${overall ?? "?"}`;
     }
+    case "dcf": {
+      const upside = (payload as { upside_pct?: number }).upside_pct;
+      const verdict = (payload as { verdict?: string }).verdict;
+      return upside != null
+        ? `Upside ${upside.toFixed(1)} %${verdict ? ` · ${verdict}` : ""}`
+        : "Bewertung";
+    }
+    case "forces": {
+      const attr = (payload as { industry_attractiveness?: string }).industry_attractiveness;
+      return attr ? `Attraktivität: ${attr}` : "Five Forces";
+    }
+    case "debate": {
+      const side = (payload as { winning_side?: string }).winning_side;
+      const conv = (payload as { conviction?: string }).conviction;
+      return side ? `Sieger: ${side}${conv ? ` · ${conv}` : ""}` : "Debatte";
+    }
     case "tournament": {
       const winner = (payload as { winner_isin?: string }).winner_isin;
       if (!winner) return "Turnier";
