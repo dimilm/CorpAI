@@ -11,10 +11,18 @@ interface Props {
   isin: string;
 }
 
-// Backend ships exactly these four agents; we hard-code the order so the
-// stacked sections always appear in the same sequence and so the four
+// Backend ships exactly these seven agents; we hard-code the order so the
+// stacked sections always appear in the same sequence and so the
 // `useAgentRuns` calls below stay rules-of-hooks compliant (fixed count).
-const AGENT_ORDER = ["fisher", "scenario", "redflag", "tournament"] as const;
+const AGENT_ORDER = [
+  "fisher",
+  "dcf",
+  "scenario",
+  "forces",
+  "redflag",
+  "debate",
+  "tournament",
+] as const;
 type AgentId = (typeof AGENT_ORDER)[number];
 
 export function AIAgentsPanel({ isin }: Props) {
@@ -35,24 +43,41 @@ export function AIAgentsPanel({ isin }: Props) {
     : null;
 
   const fisherRunsQ = useAgentRuns("fisher", isin);
+  const dcfRunsQ = useAgentRuns("dcf", isin);
   const scenarioRunsQ = useAgentRuns("scenario", isin);
+  const forcesRunsQ = useAgentRuns("forces", isin);
   const redflagRunsQ = useAgentRuns("redflag", isin);
+  const debateRunsQ = useAgentRuns("debate", isin);
   const tournamentRunsQ = useAgentRuns("tournament", isin);
 
   const runsByAgent = useMemo(
     () => ({
       fisher: fisherRunsQ.data ?? [],
+      dcf: dcfRunsQ.data ?? [],
       scenario: scenarioRunsQ.data ?? [],
+      forces: forcesRunsQ.data ?? [],
       redflag: redflagRunsQ.data ?? [],
+      debate: debateRunsQ.data ?? [],
       tournament: tournamentRunsQ.data ?? [],
     }),
-    [fisherRunsQ.data, scenarioRunsQ.data, redflagRunsQ.data, tournamentRunsQ.data]
+    [
+      fisherRunsQ.data,
+      dcfRunsQ.data,
+      scenarioRunsQ.data,
+      forcesRunsQ.data,
+      redflagRunsQ.data,
+      debateRunsQ.data,
+      tournamentRunsQ.data,
+    ]
   );
 
   const allRunsLoaded =
     !fisherRunsQ.isLoading &&
+    !dcfRunsQ.isLoading &&
     !scenarioRunsQ.isLoading &&
+    !forcesRunsQ.isLoading &&
     !redflagRunsQ.isLoading &&
+    !debateRunsQ.isLoading &&
     !tournamentRunsQ.isLoading;
 
   // Pick the agent with the most recent run (across all four) once data has

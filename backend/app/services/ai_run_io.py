@@ -1,9 +1,11 @@
 """JSON export/import for the `AIRun` history.
 
-AI agents (Fisher, Tournament, Scenario, Red-Flag) are expensive to run and,
-for the Opus/claudecode provider, only available locally. This module lets a
-local instance export its finished runs and re-import them on another
-deployment (e.g. the Docker server) — which doubles as a backup.
+AI agent runs are expensive to produce and, for the Opus/claudecode provider,
+only available locally. This module lets a local instance export its finished
+runs and re-import them on another deployment (e.g. the Docker server) — which
+doubles as a backup. It is agent-agnostic: export selects every finished run by
+status, and import accepts any ``agent_id`` that the registry currently knows
+(``list_agents()``), so newly added agents are picked up automatically.
 
 Export shape (one entry per finished run, all stocks, all agents)::
 

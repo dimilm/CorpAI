@@ -1,7 +1,7 @@
 """Latest-AI-run lookup helpers used by the watchlist table.
 
 The watchlist needs a compact summary of the most recent successful run per
-`(isin, agent_id)` pair so it can render the four mini-pills inline in the
+`(isin, agent_id)` pair so it can render the mini-pills inline in the
 table. We deliberately keep this module separate from `stock_service` so the
 two concerns stay independently testable: one owns the SQL window-query, the
 other glues the result onto the existing `StockOut` payload.
@@ -26,7 +26,7 @@ from app.models.ai_run import AIRun
 # stable; if a new agent gets added it just stays invisible in the watchlist
 # until its id is registered here.
 _KNOWN_AGENT_IDS: frozenset[str] = frozenset(
-    {"fisher", "redflag", "scenario", "tournament"}
+    {"fisher", "redflag", "scenario", "tournament", "dcf", "forces", "debate"}
 )
 
 
@@ -113,6 +113,37 @@ def summarize_run(run: AIRun) -> dict[str, Any] | None:
         return {
             "expected_return_pct": float(ret),
             "time_horizon_years": payload.get("time_horizon_years"),
+            "summary": str(payload.get("summary") or ""),
+        }
+
+    if agent_id == "dcf":
+        upside = payload.get("upside_pct")
+        verdict = payload.get("verdict")
+        if upside is None or verdict is None:
+            return None
+        return {
+            "verdict": str(verdict),
+            "upside_pct": float(upside),
+            "summary": str(payload.get("summary") or ""),
+        }
+
+    if agent_id == "forces":
+        attractiveness = payload.get("industry_attractiveness")
+        if attractiveness is None:
+            return None
+        return {
+            "industry_attractiveness": str(attractiveness),
+            "summary": str(payload.get("summary") or ""),
+        }
+
+    if agent_id == "debate":
+        side = payload.get("winning_side")
+        if side is None:
+            return None
+        conviction = payload.get("conviction")
+        return {
+            "winning_side": str(side),
+            "conviction": str(conviction) if conviction is not None else "",
             "summary": str(payload.get("summary") or ""),
         }
 

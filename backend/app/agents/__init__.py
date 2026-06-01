@@ -7,7 +7,10 @@ single source of truth consumed by the API and the UI.
 from __future__ import annotations
 
 from app.agents.base import BaseAgent
+from app.agents.dcf.agent import DcfAgent
+from app.agents.debate.agent import DebateAgent
 from app.agents.fisher.agent import FisherAgent
+from app.agents.forces.agent import FiveForcesAgent
 from app.agents.redflag.agent import RedFlagAgent
 from app.agents.registry import AGENTS, get_agent, list_agents
 from app.agents.scenario.agent import ScenarioAgent
@@ -16,7 +19,10 @@ from app.agents.tournament.agent import TournamentAgent
 __all__ = [
     "AGENTS",
     "BaseAgent",
+    "DcfAgent",
+    "DebateAgent",
     "FisherAgent",
+    "FiveForcesAgent",
     "RedFlagAgent",
     "ScenarioAgent",
     "TournamentAgent",

@@ -1,8 +1,32 @@
-export type AIAgentId = "fisher" | "scenario" | "redflag" | "tournament";
+export type AIAgentId =
+  | "fisher"
+  | "scenario"
+  | "redflag"
+  | "tournament"
+  | "dcf"
+  | "forces"
+  | "debate";
 
 export interface FisherPillSummary {
   score: number;
   verdict: "strong" | "neutral" | "weak";
+  summary?: string;
+}
+
+export interface DcfPillSummary {
+  verdict: "cheap" | "fair" | "expensive";
+  upside_pct: number;
+  summary?: string;
+}
+
+export interface FiveForcesPillSummary {
+  industry_attractiveness: "attractive" | "neutral" | "unattractive";
+  summary?: string;
+}
+
+export interface DebatePillSummary {
+  winning_side: "bull" | "bear" | "tie";
+  conviction: "low" | "medium" | "high" | "";
   summary?: string;
 }
 
@@ -29,7 +53,10 @@ export type AIPillSummary =
   | FisherPillSummary
   | RedFlagPillSummary
   | ScenarioPillSummary
-  | TournamentPillSummary;
+  | TournamentPillSummary
+  | DcfPillSummary
+  | FiveForcesPillSummary
+  | DebatePillSummary;
 
 export interface AILatestRun {
   agent_id: string;

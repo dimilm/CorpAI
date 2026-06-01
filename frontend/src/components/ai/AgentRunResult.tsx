@@ -1,11 +1,17 @@
 import type { AIRun } from "../../types";
 import type {
+  DcfResult,
+  DebateResult,
   FisherResult,
+  FiveForcesResult,
   RedFlagResult,
   ScenarioResult,
   TournamentResult,
 } from "./agentTypes";
+import { DcfResultView } from "./DcfResultView";
+import { DebateResultView } from "./DebateResultView";
 import { FisherResultView } from "./FisherResultView";
+import { FiveForcesResultView } from "./FiveForcesResultView";
 import { RedFlagResultView } from "./RedFlagResultView";
 import { ScenarioResultView } from "./ScenarioResultView";
 import { TournamentResultView } from "./TournamentResultView";
@@ -39,6 +45,19 @@ export function AgentRunResult({ run, currency }: Props) {
       );
     case "redflag":
       return <RedFlagResultView result={run.result_payload as unknown as RedFlagResult} />;
+    case "dcf":
+      return (
+        <DcfResultView
+          result={run.result_payload as unknown as DcfResult}
+          currency={currency}
+        />
+      );
+    case "forces":
+      return (
+        <FiveForcesResultView result={run.result_payload as unknown as FiveForcesResult} />
+      );
+    case "debate":
+      return <DebateResultView result={run.result_payload as unknown as DebateResult} />;
     case "tournament": {
       // Tournament results store ISINs only — fish the human-readable
       // company names back out of the `input_payload.participants` so the

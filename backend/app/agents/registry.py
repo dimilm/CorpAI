@@ -6,7 +6,10 @@ registry (e.g. via `app.agents`) without triggering circular imports.
 from __future__ import annotations
 
 from app.agents.base import BaseAgent
+from app.agents.dcf.agent import DcfAgent
+from app.agents.debate.agent import DebateAgent
 from app.agents.fisher.agent import FisherAgent
+from app.agents.forces.agent import FiveForcesAgent
 from app.agents.redflag.agent import RedFlagAgent
 from app.agents.scenario.agent import ScenarioAgent
 from app.agents.tournament.agent import TournamentAgent
@@ -15,9 +18,12 @@ from app.agents.tournament.agent import TournamentAgent
 def _build_registry() -> dict[str, BaseAgent]:
     instances: list[BaseAgent] = [
         FisherAgent(),
-        TournamentAgent(),
+        DcfAgent(),
         ScenarioAgent(),
+        FiveForcesAgent(),
         RedFlagAgent(),
+        DebateAgent(),
+        TournamentAgent(),
     ]
     return {agent.id: agent for agent in instances}
 

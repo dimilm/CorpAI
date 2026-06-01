@@ -5,7 +5,10 @@ import { parseBackendDate } from "../../lib/format";
 import type {
   AIAgentId,
   AILatestRun,
+  DcfPillSummary,
+  DebatePillSummary,
   FisherPillSummary,
+  FiveForcesPillSummary,
   RedFlagPillSummary,
   ScenarioPillSummary,
   Stock,
@@ -16,13 +19,51 @@ interface Props {
   stock: Stock;
 }
 
-const AGENT_ORDER: AIAgentId[] = ["fisher", "redflag", "scenario", "tournament"];
+const AGENT_ORDER: AIAgentId[] = [
+  "fisher",
+  "dcf",
+  "scenario",
+  "forces",
+  "redflag",
+  "debate",
+  "tournament",
+];
 
 const AGENT_LABEL: Record<AIAgentId, string> = {
   fisher: "Fisher",
+  dcf: "Wert",
   redflag: "Risiko",
   scenario: "Szenario",
+  forces: "Porter",
+  debate: "Debatte",
   tournament: "Turnier",
+};
+
+const DCF_VERDICT_LABEL: Record<DcfPillSummary["verdict"], string> = {
+  cheap: "Unterbewertet",
+  fair: "Fair",
+  expensive: "Überbewertet",
+};
+
+const ATTRACTIVENESS_LABEL: Record<
+  FiveForcesPillSummary["industry_attractiveness"],
+  string
+> = {
+  attractive: "Attraktiv",
+  neutral: "Neutral",
+  unattractive: "Unattraktiv",
+};
+
+const DEBATE_SIDE_LABEL: Record<DebatePillSummary["winning_side"], string> = {
+  bull: "Bull",
+  bear: "Bear",
+  tie: "Remis",
+};
+
+const DEBATE_CONVICTION_LABEL: Record<string, string> = {
+  low: "niedrig",
+  medium: "mittel",
+  high: "hoch",
 };
 
 const RISK_LABEL: Record<RedFlagPillSummary["overall_risk"], string> = {
@@ -168,6 +209,57 @@ export function AIPillRow({ stock }: Props) {
           short="T"
           detail={detail}
           metric={`${detail} · vs ${peerLabel}`}
+          summary={s.summary}
+        />
+      );
+    } else if (agentId === "dcf") {
+      const s = summary as unknown as DcfPillSummary;
+      const positive = s.upside_pct >= 0;
+      const detail = `${positive ? "+" : ""}${s.upside_pct.toFixed(1)} %`;
+      pills.push(
+        <AIPill
+          key={agentId}
+          agentId="dcf"
+          run={run}
+          isin={stock.isin}
+          className={`ai-pill-dcf ai-pill-dcf-${s.verdict}`}
+          short="W"
+          detail={detail}
+          metric={`Upside ${detail} · ${DCF_VERDICT_LABEL[s.verdict] ?? s.verdict}`}
+          summary={s.summary}
+        />
+      );
+    } else if (agentId === "forces") {
+      const s = summary as unknown as FiveForcesPillSummary;
+      const label =
+        ATTRACTIVENESS_LABEL[s.industry_attractiveness] ?? s.industry_attractiveness;
+      pills.push(
+        <AIPill
+          key={agentId}
+          agentId="forces"
+          run={run}
+          isin={stock.isin}
+          className={`ai-pill-forces ai-pill-forces-${s.industry_attractiveness}`}
+          short="P"
+          detail={label}
+          metric={`Branche: ${label}`}
+          summary={s.summary}
+        />
+      );
+    } else if (agentId === "debate") {
+      const s = summary as unknown as DebatePillSummary;
+      const sideLabel = DEBATE_SIDE_LABEL[s.winning_side] ?? s.winning_side;
+      const convLabel = DEBATE_CONVICTION_LABEL[s.conviction] ?? "";
+      pills.push(
+        <AIPill
+          key={agentId}
+          agentId="debate"
+          run={run}
+          isin={stock.isin}
+          className={`ai-pill-debate ai-pill-debate-${s.winning_side}`}
+          short="D"
+          detail={sideLabel}
+          metric={`Sieger: ${sideLabel}${convLabel ? ` · ${convLabel}` : ""}`}
           summary={s.summary}
         />
       );

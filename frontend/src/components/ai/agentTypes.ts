@@ -80,3 +80,50 @@ export interface TournamentResult {
   winner_rationale: string;
   summary: string;
 }
+
+export type DcfVerdict = "cheap" | "fair" | "expensive";
+
+export interface DcfResult {
+  forecast_years: number;
+  discount_rate_pct: number;
+  terminal_growth_pct: number;
+  fair_value_low: number;
+  fair_value_base: number;
+  fair_value_high: number;
+  current_price: number;
+  upside_pct: number;
+  margin_of_safety_pct: number;
+  implied_growth_pct: number;
+  implied_expectations: string[];
+  key_assumptions: string[];
+  verdict: DcfVerdict;
+  summary: string;
+}
+
+export type ForceIntensity = "low" | "medium" | "high";
+export type IndustryAttractiveness = "attractive" | "neutral" | "unattractive";
+
+export interface ForceAssessment {
+  force: string;
+  intensity: ForceIntensity;
+  rationale: string;
+  drivers: string[];
+}
+
+export interface FiveForcesResult {
+  forces: ForceAssessment[];
+  industry_attractiveness: IndustryAttractiveness;
+  summary: string;
+}
+
+export type DebateSide = "bull" | "bear" | "tie";
+export type DebateConviction = "low" | "medium" | "high";
+
+export interface DebateResult {
+  bull_arguments: string[];
+  bear_arguments: string[];
+  winning_side: DebateSide;
+  conviction: DebateConviction;
+  judge_rationale: string;
+  summary: string;
+}

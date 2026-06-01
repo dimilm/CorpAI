@@ -45,7 +45,15 @@ def test_get_agents_returns_all_registered_agents() -> None:
     assert resp.status_code == 200
     body = resp.json()
     ids = {agent["id"] for agent in body}
-    assert ids == {"fisher", "tournament", "scenario", "redflag"}
+    assert ids == {
+        "fisher",
+        "tournament",
+        "scenario",
+        "redflag",
+        "dcf",
+        "forces",
+        "debate",
+    }
     fisher = next(a for a in body if a["id"] == "fisher")
     assert "output_schema" in fisher
     assert fisher["output_schema"]["type"] == "object"
