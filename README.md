@@ -91,6 +91,58 @@ docker compose build backend && docker compose up -d
 
 > **TLS-intercepting proxy during build?** Either inject your corporate root CA into `docker/corp-ca.crt` and set `NODE_EXTRA_CA_CERTS` in the Dockerfile, or set `PLAYWRIGHT_INSECURE_DOWNLOAD=1` in `docker/.env` to skip TLS verification for the one-shot Chromium download only.
 
+## Deploy to production
+
+Production runs the Docker stack on a single Linux server. Images are **built on
+the server** (the current `docker compose up --build` model is kept). The
+end-to-end flow is **commit → PR → deploy**, automated like this:
+
+| Step | How |
+| --- | --- |
+| Commit, push, open PR | gstack `/ship` (runs the gate, bumps VERSION, opens the PR) |
+| Merge the PR | gstack `/land-and-deploy` (or `/land`) |
+| CI gate on every PR/push | GitHub Actions `ci.yml` — pytest + typecheck + vitest |
+| Deploy to prod | GitHub → **Actions → Deploy → Run workflow** (manual button) |
+
+### Deploy button
+
+`.github/workflows/deploy.yml` is a manual `workflow_dispatch`. It SSHes into the
+prod server and runs [`scripts/deploy.sh`](scripts/deploy.sh), which:
+
+1. `git fetch` + checkout/reset to the chosen ref (default `main`),
+2. `cd docker && docker compose up -d --build`,
+3. polls health (`/healthz` + `/api/v1/health` via nginx) until green, then
+4. prunes dangling images.
+
+You can also run it by hand on the server: `DEPLOY_PATH=/opt/CorpAI bash scripts/deploy.sh`.
+
+### One-time setup
+
+**On the prod server**
+
+- Check out the repo (e.g. at `/opt/CorpAI`) with `origin` set to this GitHub repo,
+  and create `docker/.env` (it is gitignored and never overwritten by deploys).
+- Add the deploy user to the `docker` group so `docker compose` runs without sudo.
+- Authorize a deploy SSH key: `ssh-keygen -t ed25519 -C corpai-deploy`, then append
+  the **public** key to the deploy user's `~/.ssh/authorized_keys`.
+
+**In GitHub** (Settings → Secrets and variables → Actions → *Secrets*)
+
+| Secret | Value |
+| --- | --- |
+| `DEPLOY_SSH_HOST` | Server hostname / IP |
+| `DEPLOY_SSH_USER` | Deploy user |
+| `DEPLOY_SSH_KEY` | The **private** deploy key |
+| `DEPLOY_SSH_PORT` | SSH port (optional, defaults to 22) |
+| `DEPLOY_PATH` | Repo path on the server, e.g. `/opt/CorpAI` |
+
+> Optional one-command land+deploy: point gstack `/setup-deploy` at
+> `gh workflow run deploy.yml --ref main` so `/land-and-deploy` merges **and**
+> fires the deploy. The manual button stays available for ad-hoc deploys.
+
+> Plain HTTP (no TLS)? Keep `COOKIE_SECURE=false` in the server's `docker/.env`
+> (see the Docker section above), or auth cookies are dropped.
+
 ## Run locally
 
 ### Prerequisites
