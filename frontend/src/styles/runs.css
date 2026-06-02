@@ -217,6 +217,146 @@
   min-width: 720px;
 }
 
+/* ---- Mobile cards: phone-width counterpart to .run-table -------------- */
+
+.run-mobile-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.run-mobile-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-left-width: 3px;
+  border-left-color: var(--border-strong);
+  border-radius: 12px;
+  box-shadow: var(--shadow-sm);
+}
+
+.run-mobile-card.run-row-running { border-left-color: var(--info-solid); }
+.run-mobile-card.run-row-done { border-left-color: var(--success-solid); }
+.run-mobile-card.run-row-error { border-left-color: var(--danger-solid); }
+.run-mobile-card.run-row-cancelled { border-left-color: var(--cancel-strong); }
+
+.run-mobile-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.run-mobile-card-name-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+
+.run-mobile-card-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-strong);
+}
+
+.run-mobile-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.run-mobile-card-steps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  padding: 8px;
+  background: var(--bg-surface-2);
+  border-radius: 8px;
+}
+
+.run-mobile-card-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+}
+
+.run-mobile-card-step-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.run-mobile-card-error {
+  margin: 0;
+  font-size: 11px;
+}
+
+.run-mobile-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.run-mobile-card-footer-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+/* ---- Mobile cards: run history --------------------------------------- */
+
+.run-history-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.run-history-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: 10px;
+}
+
+.run-history-card-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.run-history-card-id {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: var(--text-strong);
+}
+
+.run-history-card-status {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.run-history-card-meta,
+.run-history-card-counts {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
 .run-table {
   width: 100%;
   border-collapse: separate;

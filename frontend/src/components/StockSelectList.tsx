@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { EmptyState } from "./EmptyState";
 import { SearchField } from "./SearchField";
 import { SearchIcon } from "./icons";
+import { useIsMobile } from "../hooks/useBreakpoint";
 import type { Stock } from "../types";
 
 export interface StockSelectColumn {
@@ -44,6 +45,7 @@ export function StockSelectList({
   extraColumns = [],
 }: StockSelectListProps) {
   const [search, setSearch] = useState("");
+  const isMobile = useIsMobile();
 
   const filteredStocks = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -104,6 +106,63 @@ export function StockSelectList({
           title="Keine Unternehmen"
           description={emptyDescription}
         />
+      ) : isMobile ? (
+        <div
+          className="stock-select-cards"
+          style={
+            maxListHeight != null
+              ? { maxHeight: maxListHeight, overflowY: "auto" }
+              : undefined
+          }
+        >
+          <div className="stock-select-cards-tools">
+            <button
+              type="button"
+              className="btn-secondary btn-sm"
+              onClick={toggleAllVisible}
+              disabled={visibleIsins.length === 0}
+            >
+              {allVisibleSelected ? "Auswahl aufheben" : "Alle auswählen"}
+            </button>
+            <span className="detail-card-hint">{selectedIsins.size} ausgewählt</span>
+          </div>
+          {filteredStocks.map((s) => {
+            const selected = selectedIsins.has(s.isin);
+            return (
+              <div
+                key={s.isin}
+                role="button"
+                tabIndex={0}
+                aria-pressed={selected}
+                className={`stock-select-card${selected ? " is-selected" : ""}`}
+                onClick={() => toggleStock(s.isin)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    toggleStock(s.isin);
+                  }
+                }}
+              >
+                <span className="stock-select-card-check" aria-hidden="true" />
+                <div className="stock-select-card-body">
+                  <div className="stock-select-card-name">{s.name}</div>
+                  <div className="stock-select-card-meta">
+                    <span className="isin-pill">{s.isin}</span>
+                    {s.sector && (
+                      <span className="stock-select-card-sector">{s.sector}</span>
+                    )}
+                  </div>
+                  {extraColumns.map((col) => (
+                    <div key={col.key} className="stock-select-card-extra">
+                      <span className="stock-select-card-extra-label">{col.header}</span>
+                      <div className="stock-select-card-extra-value">{col.render(s)}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       ) : (
         <div
           className="stock-select-list"
