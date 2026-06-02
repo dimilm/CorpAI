@@ -666,11 +666,88 @@
   margin-bottom: 8px;
 }
 
+/* ---- KI-Batch: kompakte Zusammenfassung eines abgeschlossenen Laufs ------ */
+
+.ai-batch-summary {
+  margin-bottom: 16px;
+}
+
+.ai-batch-summary-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 14px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: 12px;
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  text-align: left;
+  color: var(--text-strong);
+  font: inherit;
+  transition: border-color 120ms ease, background-color 120ms ease;
+}
+
+.ai-batch-summary-toggle:hover {
+  border-color: var(--accent-soft-bg-strong);
+  background: var(--bg-surface-2);
+}
+
+.ai-batch-summary-chevron {
+  flex-shrink: 0;
+  width: 14px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.ai-batch-summary-label {
+  font-weight: 600;
+}
+
+.ai-batch-summary-figs {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.ai-batch-summary-figs .is-ok {
+  color: var(--success-fg);
+  font-weight: 600;
+}
+
+.ai-batch-summary-figs .is-err {
+  color: var(--danger-fg);
+  font-weight: 600;
+}
+
+.ai-batch-summary-cta {
+  margin-left: auto;
+  flex-shrink: 0;
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 600;
+}
+
 /* ---- Mobile (≤ 520px) stack pass ---------------------------------------- */
 
 @media (max-width: 520px) {
   .run-summary-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* Toggle-Zeile umbrechen lassen, CTA rutscht dann mit um statt zu klemmen */
+  .ai-batch-summary-toggle {
+    flex-wrap: wrap;
+  }
+
+  .ai-batch-summary-cta {
+    margin-left: 0;
   }
 
   /* Filter row: horizontal scroll strip so pills don't stack into a wall */

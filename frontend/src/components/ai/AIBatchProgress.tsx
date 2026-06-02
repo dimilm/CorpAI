@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 
 import { FilterPills, FilterPillOption } from "../FilterPills";
 import { RunSummaryItem } from "../RunSummaryItem";
@@ -76,7 +76,19 @@ export function AIBatchProgress({ run, items, agentLabel, onCancel, cancelPendin
     },
   ];
 
-  return (
+  const isFinished = run.phase === "finished";
+
+  // Ein abgeschlossener Lauf wird oben nur als schmale Zusammenfassung gezeigt
+  // und standardmäßig eingeklappt, damit er die Aktientabelle nicht wegdrückt.
+  // `wasRunningRef` merkt, ob wir den Lauf live gesehen haben: dann bleibt er
+  // offen (kein plötzliches Zuklappen beim Fertigwerden), ein beim Laden bereits
+  // fertiger Lauf startet zu. `key={run.id}` am Aufrufer setzt das pro Lauf zurück.
+  const wasRunningRef = useRef(false);
+  if (!isFinished) wasRunningRef.current = true;
+  const [userExpanded, setUserExpanded] = useState<boolean | null>(null);
+  const expanded = userExpanded ?? wasRunningRef.current;
+
+  const detail = (
     <>
       <div className="run-summary-card">
         <div className="run-summary-grid">
@@ -162,6 +174,44 @@ export function AIBatchProgress({ run, items, agentLabel, onCancel, cancelPendin
         )}
       </div>
     </>
+  );
+
+  // Aktiver/anstehender Lauf: volle Live-Ansicht wie bisher.
+  if (!isFinished) return detail;
+
+  // Abgeschlossener Lauf: kompakte, aufklappbare Zusammenfassungszeile.
+  return (
+    <section className="ai-batch-summary">
+      <button
+        type="button"
+        className="ai-batch-summary-toggle"
+        onClick={() => setUserExpanded((v) => !(v ?? wasRunningRef.current))}
+        aria-expanded={expanded}
+      >
+        <span className="ai-batch-summary-chevron" aria-hidden="true">
+          {expanded ? "▾" : "▸"}
+        </span>
+        <span className="ai-batch-summary-label">
+          Letzter Lauf · {runStatusLabel(run.status)}
+        </span>
+        <span className="ai-batch-summary-figs">
+          <span>
+            {done} / {total}
+          </span>
+          <span className="is-ok">{run.stocks_success} ok</span>
+          {run.stocks_error > 0 && (
+            <span className="is-err">{run.stocks_error} Fehler</span>
+          )}
+          {run.duration_seconds != null && (
+            <span>{formatDuration(run.duration_seconds)}</span>
+          )}
+        </span>
+        <span className="ai-batch-summary-cta">
+          {expanded ? "Details ausblenden" : "Details"}
+        </span>
+      </button>
+      {expanded && detail}
+    </section>
   );
 }
 

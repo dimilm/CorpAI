@@ -204,6 +204,7 @@ export function BatchAnalysisPage() {
 
       {aiRun && (
         <AIBatchProgress
+          key={aiRun.id}
           run={aiRun}
           items={aiStatuses.data ?? []}
           agentLabel={agentLabel}
