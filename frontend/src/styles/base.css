@@ -3,12 +3,15 @@
 
 * {
   box-sizing: border-box;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  font-family: var(--font-sans);
 }
 
 body {
   margin: 0;
-  background: var(--bg-page);
+  /* Atmospheric page background sits behind every surface (fixed so it does
+   * not scroll). Cards/tables keep their solid --bg-surface on top. */
+  background: var(--bg-atmosphere);
+  background-attachment: fixed;
   color: var(--text-primary);
 }
 
@@ -72,6 +75,20 @@ nav {
   padding: 8px 12px;
   background: var(--bg-nav);
   color: var(--c-white);
+  /* Faint accent underline grounds the bar and carries the signature hue. */
+  box-shadow: inset 0 -1px 0 0 rgba(255, 255, 255, 0.06), 0 1px 0 0 var(--accent-soft-bg);
+}
+
+/* Brand wordmark in the nav — the one place the display serif appears in chrome. */
+nav .nav-brand {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 16px;
+  letter-spacing: -0.01em;
+  color: var(--c-white);
+  padding: 0 10px 0 4px;
+  margin-right: 2px;
+  white-space: nowrap;
 }
 
 nav a,
@@ -184,7 +201,31 @@ nav .nav-logout:hover {
 
 .page {
   padding: 16px;
+  /* One orchestrated entrance per route mount (React remounts on navigation). */
+  animation: page-enter 0.45s ease both;
 }
+
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Opt-in staggered reveal for a container's direct children (e.g. the KPI grid).
+ * Applied only to small, fixed-count groups — never to long table rows. */
+.stagger > * {
+  animation: page-enter 0.4s ease both;
+}
+.stagger > *:nth-child(2) { animation-delay: 50ms; }
+.stagger > *:nth-child(3) { animation-delay: 100ms; }
+.stagger > *:nth-child(4) { animation-delay: 150ms; }
+.stagger > *:nth-child(5) { animation-delay: 200ms; }
+.stagger > *:nth-child(6) { animation-delay: 250ms; }
 
 .narrow {
   max-width: 360px;
@@ -193,23 +234,57 @@ nav .nav-logout:hover {
 /* ------- Page header ------- */
 
 .page-header {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding-bottom: 12px;
-  margin-bottom: 12px;
-  border-bottom: 1px solid var(--border-default);
+  padding-bottom: 14px;
+  margin-bottom: 16px;
+}
+
+/* Signature hairline divider: accent-tinted at the start, fading to nothing. */
+.page-header::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    var(--accent) 0%,
+    var(--border-default) 38%,
+    transparent 100%
+  );
+  opacity: 0.6;
+}
+
+.page-header-eyebrow {
+  display: block;
+  margin-bottom: 2px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
 }
 
 .page-header-title h2 {
   margin: 0;
-  font-size: 20px;
+  font-family: var(--font-display);
+  font-size: var(--fs-display);
   font-weight: 600;
+  line-height: var(--lh-tight);
+  letter-spacing: -0.01em;
   color: var(--text-strong);
 }
 
 .muted-count {
+  /* Secondary title suffix stays in the body sans even inside a display-font
+   * h2, so long suffixes ("· Run #13 · …") don't render as large serif. */
+  font-family: var(--font-sans);
   color: var(--text-secondary);
   font-weight: 500;
   font-size: 15px;
@@ -218,6 +293,7 @@ nav .nav-logout:hover {
 .page-header-actions {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
 }
 
@@ -290,11 +366,16 @@ nav .nav-logout:hover {
   opacity: 0.7;
 }
 
-/* Honour reduced-motion: hold a static tint instead of shimmering. */
+/* Honour reduced-motion: hold a static tint instead of shimmering, and skip
+ * the page/stagger entrance reveals entirely. */
 @media (prefers-reduced-motion: reduce) {
   .skeleton {
     animation: none;
     background: var(--bg-subtle);
+  }
+  .page,
+  .stagger > * {
+    animation: none;
   }
 }
 

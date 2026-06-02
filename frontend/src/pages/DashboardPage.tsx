@@ -215,7 +215,7 @@ export function DashboardPage() {
 
       {data.last_run && <LastRunBanner lastRun={data.last_run} />}
 
-      <section className="kpi-grid">
+      <section className="kpi-grid stagger">
         <KpiCard
           label="Aktien gesamt"
           value={String(totalStocks)}

@@ -17,6 +17,10 @@
  * modal), giving that context its own inner scroll. */
 .stock-select-list {
   overflow-y: auto;
+  /* Wide multi-agent table (UNTERNEHMEN + per-agent columns) pans horizontally
+   * on narrow screens instead of clipping the rightmost column. */
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
   border: 1px solid var(--border-default);
   border-radius: 8px;
 }
@@ -72,5 +76,111 @@
 .stock-select-isin {
   font-family: ui-monospace, SFMono-Regular, "Menlo", monospace;
   font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* ---- Mobile cards: selectable phone-width counterpart to the table ----- */
+
+.stock-select-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.stock-select-cards-tools {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.stock-select-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.stock-select-card.is-selected {
+  border-color: var(--accent);
+  background: var(--accent-soft-bg);
+}
+
+.stock-select-card:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft-bg);
+}
+
+.stock-select-card-check {
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  margin-top: 1px;
+  border: 2px solid var(--border-strong);
+  border-radius: 50%;
+  position: relative;
+}
+
+.stock-select-card.is-selected .stock-select-card-check {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.stock-select-card.is-selected .stock-select-card-check::after {
+  content: "✓";
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.stock-select-card-body {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.stock-select-card-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-strong);
+}
+
+.stock-select-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.stock-select-card-sector {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.stock-select-card-extra {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.stock-select-card-extra-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
   color: var(--text-muted);
 }

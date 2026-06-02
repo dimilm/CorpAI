@@ -156,3 +156,28 @@ def test_run_agent_returns_404_for_unknown_isin() -> None:
         headers={"X-CSRF-Token": csrf},
     )
     assert resp.status_code == 404
+
+
+def test_import_returns_507_when_disk_full(monkeypatch: pytest.MonkeyPatch) -> None:
+    import sqlite3
+
+    from sqlalchemy.exc import OperationalError
+
+    from app.api.v1 import ai as ai_router
+
+    def _disk_full(*_args, **_kwargs):
+        raise OperationalError(
+            "INSERT INTO ai_runs ...", {}, sqlite3.OperationalError("database or disk is full")
+        )
+
+    monkeypatch.setattr(ai_router.ai_run_io, "import_runs", _disk_full)
+
+    client = TestClient(app)
+    csrf = _login(client)
+    resp = client.post(
+        "/api/v1/ai/runs/import",
+        files={"file": ("ai-analysis.json", b"{}", "application/json")},
+        headers={"X-CSRF-Token": csrf},
+    )
+    assert resp.status_code == 507
+    assert "voll" in resp.json()["detail"].lower()

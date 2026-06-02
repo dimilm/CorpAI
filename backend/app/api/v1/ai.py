@@ -22,8 +22,14 @@ import time
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, Query, UploadFile
 from fastapi.responses import PlainTextResponse, Response
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
-from starlette.status import HTTP_202_ACCEPTED, HTTP_409_CONFLICT
+from starlette.status import (
+    HTTP_202_ACCEPTED,
+    HTTP_409_CONFLICT,
+    HTTP_503_SERVICE_UNAVAILABLE,
+    HTTP_507_INSUFFICIENT_STORAGE,
+)
 
 from app.agents import get_agent, list_agents
 from app.api.deps import csrf_guard, get_ai_provider, get_current_user, require_admin
@@ -279,7 +285,26 @@ async def import_ai_runs(
     ``skipped_existing``).
     """
     content = await file.read()
-    return ai_run_io.import_runs(db, content)
+    try:
+        return ai_run_io.import_runs(db, content)
+    except OperationalError as exc:
+        # The only unguarded write in import_runs is the bulk insert. When the
+        # SQLite volume is out of space it raises "database or disk is full";
+        # roll back the dud transaction and return a clear message instead of a
+        # bare 500 "Internal Server Error".
+        db.rollback()
+        if "disk is full" in str(exc).lower():
+            raise HTTPException(
+                status_code=HTTP_507_INSUFFICIENT_STORAGE,
+                detail=(
+                    "Speicher auf dem Server ist voll. Bitte Speicherplatz "
+                    "freigeben und den Import erneut versuchen."
+                ),
+            ) from exc
+        raise HTTPException(
+            status_code=HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Datenbank ist momentan nicht beschreibbar. Import fehlgeschlagen.",
+        ) from exc
 
 
 @router.get(

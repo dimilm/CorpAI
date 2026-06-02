@@ -9,7 +9,9 @@ import { RunSummaryItem } from "../components/RunSummaryItem";
 import { Spinner } from "../components/Spinner";
 import { StatusBadge } from "../components/StatusBadge";
 import { StockSelectList } from "../components/StockSelectList";
+import { RunStocksMobileList } from "../components/runs/RunStocksMobileList";
 import { useDocumentTitle } from "../hooks/useDocumentTitle";
+import { useIsMobile } from "../hooks/useBreakpoint";
 import {
   STOCKS_LIST_KEY,
   useCancelRefreshAll,
@@ -58,6 +60,7 @@ function formatStockDuration(s: RunStockStatus): string {
 
 export function RunsPage() {
   useDocumentTitle("Marktdaten");
+  const isMobile = useIsMobile();
   const queryClient = useQueryClient();
   const triggerRefresh = useTriggerRefreshAll();
   const cancelRefresh = useCancelRefreshAll();
@@ -400,7 +403,10 @@ export function RunsPage() {
         ariaLabel="Status filtern"
       />
 
-      <div className="run-table-wrapper">
+      {isMobile ? (
+        <RunStocksMobileList stocks={filteredStocks} />
+      ) : (
+        <div className="run-table-wrapper">
         {filteredStocks.length === 0 ? (
           <p className="run-empty">Keine Einträge in dieser Auswahl.</p>
         ) : (
@@ -443,7 +449,8 @@ export function RunsPage() {
             </tbody>
           </table>
         )}
-      </div>
+        </div>
+      )}
 
       {showHistory && (
         <section className="run-history">
@@ -475,6 +482,29 @@ export function RunsPage() {
           </div>
           {historyQuery.isLoading ? (
             <Spinner label="Lade Verlauf…" />
+          ) : isMobile ? (
+            <div className="run-history-cards">
+              {(historyQuery.data ?? []).map((r) => (
+                <div key={r.id} className="run-history-card">
+                  <div className="run-history-card-top">
+                    <span className="run-history-card-id">#{r.id}</span>
+                    <span
+                      className={`badge ${r.run_type === "jobs" ? "badge-muted" : "run-badge-done"}`}
+                    >
+                      {r.run_type === "jobs" ? "Jobs" : "Markt"}
+                    </span>
+                    <span className="run-history-card-status">{runStatusLabel(r.status)}</span>
+                  </div>
+                  <div className="run-history-card-meta">
+                    {formatDateTime(r.started_at)} · {phaseLabel(r.phase)} ·{" "}
+                    {formatDuration(r.duration_seconds)}
+                  </div>
+                  <div className="run-history-card-counts">
+                    {r.stocks_success} OK · {r.stocks_error} Fehler · {r.stocks_total} Gesamt
+                  </div>
+                </div>
+              ))}
+            </div>
           ) : (
             <table className="run-table" aria-label="Verlauf der bisherigen Läufe">
               <thead>
