@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
 import { AIBatchProgress } from "./AIBatchProgress";
@@ -88,5 +89,37 @@ describe("AIBatchProgress", () => {
     );
 
     expect(screen.queryByRole("button", { name: "Lauf abbrechen" })).not.toBeInTheDocument();
+  });
+
+  it("collapses a finished run to a summary and reveals the detail table on toggle", async () => {
+    const user = userEvent.setup();
+    render(
+      <AIBatchProgress
+        run={{
+          ...runningRun,
+          phase: "finished",
+          status: "ok",
+          stocks_done: 2,
+          stocks_success: 2,
+        }}
+        items={items}
+        agentLabel={agentLabel}
+        onCancel={vi.fn()}
+        cancelPending={false}
+      />,
+    );
+
+    // Collapsed by default: the per-row detail table is not rendered yet.
+    const toggle = screen.getByRole("button", { name: /Letzter Lauf/ });
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByText("Apple")).not.toBeInTheDocument();
+    expect(document.querySelectorAll(".run-badge").length).toBe(0);
+
+    await user.click(toggle);
+
+    // Expanded: the full detail (rows + a status badge each) is now visible.
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByText("Apple")).toBeInTheDocument();
+    expect(document.querySelectorAll(".run-badge").length).toBe(2);
   });
 });
