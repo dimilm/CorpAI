@@ -69,8 +69,11 @@ if [ "$healthy" -ne 1 ]; then
   exit 1
 fi
 
-log "Pruning dangling images"
-docker image prune -f >/dev/null
+log "Pruning unused images"
+# -a (not just dangling): repeated `up --build` deploys leave the previous
+# build's tagged images behind, which pile up fast on a small disk. Images
+# backing a running container are still kept, so the live stack is safe.
+docker image prune -af >/dev/null
 
 docker compose ps
 log "Deploy complete."
