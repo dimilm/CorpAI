@@ -32,27 +32,33 @@ export function LoginPage() {
   }
 
   return (
-    <div className="page narrow">
-      <h1>CompanyTracker Login</h1>
-      <form onSubmit={submit}>
-        <input
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          placeholder="Benutzername"
-          autoComplete="username"
-        />
-        <input
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder="Passwort"
-          type="password"
-          autoComplete="current-password"
-        />
-        <button type="submit" className="btn-primary" disabled={loading}>
-          {loading ? "Anmelden..." : "Login"}
-        </button>
-      </form>
-      {error && <p className="error">{error}</p>}
+    <div className="login-shell">
+      <div className="login-card">
+        <header className="login-brand">
+          <span className="login-eyebrow">Marktdaten · Terminal</span>
+          <h1 className="login-wordmark">CompanyTracker</h1>
+          <p className="login-tagline">Watchlist · Marktdaten · KI-Analyse</p>
+        </header>
+        <form className="login-form" onSubmit={submit}>
+          <input
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            placeholder="Benutzername"
+            autoComplete="username"
+          />
+          <input
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Passwort"
+            type="password"
+            autoComplete="current-password"
+          />
+          <button type="submit" className="btn-primary" disabled={loading}>
+            {loading ? "Anmelden..." : "Login"}
+          </button>
+        </form>
+        {error && <p className="error">{error}</p>}
+      </div>
     </div>
   );
 }

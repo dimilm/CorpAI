@@ -65,6 +65,7 @@ export function AppLayout({ children }: Props) {
       )}
       {user && !isMobile && (
         <nav>
+          <span className="nav-brand">CompanyTracker</span>
           <NavLink to="/" end className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}>
             Dashboard
           </NavLink>

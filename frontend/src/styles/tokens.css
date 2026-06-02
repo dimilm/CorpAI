@@ -105,6 +105,13 @@
   --bg-nav: var(--c-gray-900);
   --bg-overlay: rgba(15, 23, 42, 0.45);
 
+  /* Atmospheric page background — faint accent-tinted radial pools behind all
+   * surfaces. Very low-contrast so dense tables stay flat/legible on top. */
+  --bg-atmosphere:
+    radial-gradient(1100px 560px at 12% -10%, rgba(14, 124, 134, 0.06), transparent 60%),
+    radial-gradient(900px 480px at 100% 0%, rgba(56, 189, 248, 0.05), transparent 55%),
+    var(--bg-page);
+
   --text-primary: var(--c-slate-900);
   /* secondary/muted bumped one step darker than the original gray-500/gray-400
    * so small print clears WCAG AA (4.5:1) on the light page surface. */
@@ -112,16 +119,18 @@
   --text-muted: var(--c-gray-500);
   --text-strong: var(--c-gray-900);
   --text-inverted: var(--c-white);
-  --text-link: var(--c-blue-600);
+  --text-link: #0a5c64;
 
   --border-default: var(--c-gray-200);
   --border-strong: var(--c-gray-300);
   --border-subtle: var(--c-slate-100);
 
-  --accent: var(--c-blue-600);
-  --accent-hover: var(--c-blue-700);
-  --accent-soft-bg: rgba(37, 99, 235, 0.15);
-  --accent-soft-bg-strong: rgba(37, 99, 235, 0.3);
+  /* Signature accent — "terminal teal". Replaces the default SaaS blue and
+   * stays clear of the green/red sentiment colours. */
+  --accent: #0e7c86;
+  --accent-hover: #0a5c64;
+  --accent-soft-bg: rgba(14, 124, 134, 0.15);
+  --accent-soft-bg-strong: rgba(14, 124, 134, 0.3);
 
   --danger: var(--c-red-700);
   --danger-strong: var(--c-red-800);
@@ -213,8 +222,23 @@
   --radius-lg: 12px;
   --radius-pill: 999px;
 
-  /* Monospace stack (ISINs, symbols, code blocks) */
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  /* Type families. Display (Fraunces, editorial serif) for page/hero titles;
+   * sans (IBM Plex Sans) for body/UI; mono (IBM Plex Mono) for ISINs/numbers/code. */
+  --font-display: "Fraunces", Georgia, "Times New Roman", serif;
+  --font-sans: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* Type scale. Step tokens mirror today's literal sizes (gradual migration);
+   * --fs-display is the fluid page/hero title — the only "big" addition. */
+  --fs-xs: 11px;
+  --fs-sm: 12px;
+  --fs-base: 14px;
+  --fs-md: 15px;
+  --fs-lg: 18px;
+  --fs-xl: 22px;
+  --fs-display: clamp(1.5rem, 1.1rem + 1.6vw, 2.25rem);
+  --lh-tight: 1.15;
+  --lh-base: 1.5;
 
   /* Always-dark code / prompt surface (intentionally theme-independent). */
   --code-bg: var(--c-slate-900);
@@ -236,7 +260,7 @@
    * directly because it needs literal stroke/fill values for its SVG props). */
   --chart-grid: var(--c-gray-200);
   --chart-tick: var(--c-gray-500);
-  --chart-line: var(--c-blue-600);
+  --chart-line: #0e7c86;
   /* Direction-aware sparkline strokes (watchlist Trend column). */
   --chart-line-up: #16a34a;
   --chart-line-down: var(--c-red-600);
@@ -254,22 +278,26 @@
   --bg-elevated: var(--c-surface-2-dark);
   --bg-nav: #050a17;
   --bg-overlay: rgba(0, 0, 0, 0.65);
+  --bg-atmosphere:
+    radial-gradient(1100px 560px at 12% -8%, rgba(34, 184, 176, 0.1), transparent 60%),
+    radial-gradient(900px 520px at 100% 0%, rgba(34, 184, 176, 0.06), transparent 55%),
+    var(--bg-page);
 
   --text-primary: var(--c-slate-100);
   --text-secondary: var(--c-slate-400);
   --text-muted: var(--c-slate-500);
   --text-strong: var(--c-white);
   --text-inverted: var(--c-slate-900);
-  --text-link: #60a5fa;
+  --text-link: #4fd6ce;
 
   --border-default: var(--c-border-dark);
   --border-strong: var(--c-border-strong-dark);
   --border-subtle: var(--c-border-dark);
 
-  --accent: #3b82f6;
-  --accent-hover: #60a5fa;
-  --accent-soft-bg: rgba(59, 130, 246, 0.18);
-  --accent-soft-bg-strong: rgba(59, 130, 246, 0.35);
+  --accent: #22b8b0;
+  --accent-hover: #4fd6ce;
+  --accent-soft-bg: rgba(34, 184, 176, 0.18);
+  --accent-soft-bg-strong: rgba(34, 184, 176, 0.35);
 
   --danger: #f87171;
   --danger-strong: #fca5a5;
@@ -311,7 +339,7 @@
 
   --chart-grid: var(--c-border-dark);
   --chart-tick: var(--c-slate-400);
-  --chart-line: #60a5fa;
+  --chart-line: #2dd4bf;
   --chart-line-up: #4ade80;
   --chart-line-down: #f87171;
   --chart-tooltip-bg: var(--c-surface-2-dark);
@@ -331,22 +359,26 @@
     --bg-elevated: var(--c-surface-2-dark);
     --bg-nav: #050a17;
     --bg-overlay: rgba(0, 0, 0, 0.65);
+    --bg-atmosphere:
+      radial-gradient(1100px 560px at 12% -8%, rgba(34, 184, 176, 0.1), transparent 60%),
+      radial-gradient(900px 520px at 100% 0%, rgba(34, 184, 176, 0.06), transparent 55%),
+      var(--bg-page);
 
     --text-primary: var(--c-slate-100);
     --text-secondary: var(--c-slate-400);
     --text-muted: var(--c-slate-500);
     --text-strong: var(--c-white);
     --text-inverted: var(--c-slate-900);
-    --text-link: #60a5fa;
+    --text-link: #4fd6ce;
 
     --border-default: var(--c-border-dark);
     --border-strong: var(--c-border-strong-dark);
     --border-subtle: var(--c-border-dark);
 
-    --accent: #3b82f6;
-    --accent-hover: #60a5fa;
-    --accent-soft-bg: rgba(59, 130, 246, 0.18);
-    --accent-soft-bg-strong: rgba(59, 130, 246, 0.35);
+    --accent: #22b8b0;
+    --accent-hover: #4fd6ce;
+    --accent-soft-bg: rgba(34, 184, 176, 0.18);
+    --accent-soft-bg-strong: rgba(34, 184, 176, 0.35);
 
     --danger: #f87171;
     --danger-strong: #fca5a5;
@@ -386,7 +418,7 @@
 
     --chart-grid: var(--c-border-dark);
     --chart-tick: var(--c-slate-400);
-    --chart-line: #60a5fa;
+    --chart-line: #2dd4bf;
     --chart-line-up: #4ade80;
     --chart-line-down: #f87171;
     --chart-tooltip-bg: var(--c-surface-2-dark);

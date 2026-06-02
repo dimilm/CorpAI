@@ -17,6 +17,10 @@
  * modal), giving that context its own inner scroll. */
 .stock-select-list {
   overflow-y: auto;
+  /* Wide multi-agent table (UNTERNEHMEN + per-agent columns) pans horizontally
+   * on narrow screens instead of clipping the rightmost column. */
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
   border: 1px solid var(--border-default);
   border-radius: 8px;
 }
